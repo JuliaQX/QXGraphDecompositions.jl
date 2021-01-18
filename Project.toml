@@ -1,0 +1,13 @@
+name = "QXGraph"
+uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
+authors = ["QuantEx team"]
+version = "0.1.0"
+
+[compat]
+julia = "1.5"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
