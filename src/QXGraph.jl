@@ -1,5 +1,5 @@
 module QXGraph
 
-# Write your package code here.
+include("treewidth.jl")
 
 end
