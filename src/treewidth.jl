@@ -31,9 +31,9 @@ perfect elimination ordering.
 
 The QuickBB algorithm is described in arXiv:1207.4109v1
 
-# Arguments
+# Keywords
 - `time::Integer=0`: the number of second to run the quickbb binary for.
-- `order::Symbol=:_`: the branching order to be used by quickbb.
+- `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
 - `verbose::Bool=false`: set to true to print quickbb stdout and stderr output.
 - `proc_id::Integer=0`: used to create uniques names of files for different processes.
 """
@@ -110,4 +110,17 @@ function quickbb(G::lg.AbstractGraph;
     rm(graph_cnf; force=true)
     cd(work_dir)
     treewidth, perfect_elimination_order
+end
+
+function quickbb(G::LabeledGraph; 
+                time::Integer=0, 
+                order::Symbol=:_, 
+                verbose::Bool=false,
+                proc_id::Integer=0)::Tuple{Int, Array{Symbol, 1}}
+
+    treewidth, peo = quickbb(G.graph; time=time, order=order, 
+                             verbose=verbose, proc_id=proc_id)
+
+    # Convert the perfect elimination order to an array of vertex labels before returning
+    treewidth, [G.labels[v] for v in peo]
 end
