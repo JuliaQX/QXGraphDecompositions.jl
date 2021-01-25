@@ -23,6 +23,7 @@ struct LabeledGraph
     graph::lg.AbstractGraph
     labels::Vector{Symbol}
 
+    LabeledGraph() = new(lg.SimpleGraph(), Symbol[])
     LabeledGraph(G::lg.AbstractGraph) = new(deepcopy(G), Symbol.([1:lg.nv(G)...]))
     LabeledGraph(G::lg.AbstractGraph, labels::Array{Symbol, 1}) = new(deepcopy(G), labels)
 end
