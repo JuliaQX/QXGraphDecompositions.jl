@@ -1,9 +1,10 @@
 import LightGraphs; lg = LightGraphs
 
 export quickbb
+export greedy_treewidth_deletion
 
 # *************************************************************************************** #
-#                         Functions to use Gogate's QuickBB binary
+#                       Functions to use Gogate's QuickBB binary
 # *************************************************************************************** #
 
 """
@@ -124,3 +125,106 @@ function quickbb(G::LabeledGraph;
     # Convert the perfect elimination order to an array of vertex labels before returning
     treewidth, [G.labels[v] for v in peo]
 end
+
+
+# **************************************************************************************** #
+#                      Schutski's greedy method for automatic slicing
+# **************************************************************************************** #
+
+"""
+    greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
+                              score_function::Symbol=:degree, 
+                              π::Array{Symbol, 1}=[])
+
+Greedily remove vertices from G with respect to minimising the chosen score function.
+Return the reduced graph and an array of vertices which were removed.
+
+A reduced elimination order and the treewidth of the reduced graph, with respect to that
+elimination order, is also returned if an elimination order for G is provided.
+
+The algorithm is described by Schutski et al in Phys. Rev. A 102, 062614.
+
+# Keywords
+- `score_function::Symbol=:degree`: function to maximise when selecting vertices to remove.
+                                    (:degree, :direct_treewidth)
+- `elim_order:Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
+                                          direct_treewidth score function.
+"""
+function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
+                                   score_function::Symbol=:degree, 
+                                   elim_order::Array{Symbol, 1}=Symbol[])
+    # Check if keyword arguments are suitable.
+    if !(score_function in keys(SCORES)) 
+        scores = collect(keys(SCORES))
+        error("The keyword argument score_function must be one of the following: $scores")
+    end
+
+    if score_function == :direct_treewidth
+        if !(length(elim_order) == nv(G))
+            error("The direct treewidth score requires an elimination order.")
+        end
+    end
+
+    μ = []; f = SCORES[score_function]
+    G̃ = deepcopy(G); π̃ = copy(elim_order)
+
+    # Remove m vertices from G̃ which maximise the chosen score function.
+    for j = 1:m
+        u = argmax(f(G̃, π̃))
+        u_label = G̃.labels[u]
+        rem_vertex!(G̃, u)
+        setdiff!(π̃, [u_label])
+        append!(μ, [u_label])
+    end
+
+    # If an elimination order was provided, return the modified elimination order for G̃
+    # and the treewidth of G̃ with respect to the modified elimination order.
+    if length(π̃) == nv(G̃)
+        τ = find_treewidth_from_order(G̃, π̃)
+        return G̃, μ, π̃, τ
+    else
+        return G̃, μ
+    end
+end
+
+"""
+    direct_treewidth_score(G::LabeledGraph, π::Array{Symbol, 1})
+
+Return an array of integers, one for each vertex in G, indicating the change in treewidth of
+G, with respect to π, if that vertex is removed.
+"""
+function direct_treewidth_score(G::LabeledGraph, π̄::Array{Symbol, 1})
+    τ = find_treewidth_from_order(G, π̄)
+    Δ = Array{Int, 1}(undef, nv(G))
+
+    for u in vertices(G)
+        G̃ = deepcopy(G)
+        rem_vertex!(G̃, u)
+        π̃ = setdiff(π̄, [G.labels[u]])
+
+        Δ[u] = τ - find_treewidth_from_order(G̃, π̃)
+    end
+
+    Δ
+end
+
+"""
+    find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
+
+Return the treewidth of G with respect to the elimination order π̄.
+"""
+function find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
+    G = deepcopy(G)
+    τ = 1
+    for v_label in π̄
+        v = get_vertex(G, v_label)
+        τ = max(τ, degree(G, v))
+        eliminate!(G, v)
+    end
+    τ
+end
+
+# A dictionary of score functions for the greedy_treewidth_deletion algorithm.
+SCORES = Dict()
+SCORES[:degree] = (G, π) -> degree(G)
+SCORES[:direct_treewidth] = direct_treewidth_score
