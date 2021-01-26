@@ -125,6 +125,12 @@ function add_edge!(G::LabeledGraph, u::Int, v::Int)
     lg.add_edge!(G.graph, u, v)
 end
 
+function add_edge!(G::LabeledGraph, u_label::Symbol, v_label::Symbol)
+    u = get_vertex(G, u_label)
+    v = get_vertex(G, v_label)
+    lg.add_edge!(G.graph, u, v)
+end
+
 """
     has_edge(G::LabeledGraph, u::Int, v::Int)
 
