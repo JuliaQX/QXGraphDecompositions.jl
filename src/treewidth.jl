@@ -1,7 +1,8 @@
 import LightGraphs; lg = LightGraphs
 
 export quickbb
-export greedy_treewidth_deletion
+export greedy_treewidth_deletion, find_treewidth_from_order
+export build_chordal_graph, restricted_mcs
 
 # *************************************************************************************** #
 #                       Functions to use Gogate's QuickBB binary
@@ -228,3 +229,83 @@ end
 SCORES = Dict()
 SCORES[:degree] = (G, π) -> degree(G)
 SCORES[:direct_treewidth] = direct_treewidth_score
+
+
+# **************************************************************************************** #
+#                     Functions for Schutski's partial contraction method
+# **************************************************************************************** #
+
+"""
+    build_chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
+
+Return a chordal graph built from 'G' using the elimination order 'π̄'.
+
+The returned graph is created from 'G' by iterating of the vertices of 'G', according to the
+order 'π̄', and for each vertex, connecting all the neighbors that appear later in the order.
+"""
+function build_chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
+    if !(Set(π̄) == Set(G.labels)) || !(length(π̄) == nv(G))
+        error("π̄ must be an elimination order for G")
+    end
+
+    # Use G as a starting point for H and create dictionary to keep track of which vertices
+    # in the elimination order haven't been considered yet. 
+    H = deepcopy(G)
+    higher_order = Dict{Symbol, Bool}(G.labels .=> true)
+
+    # for each vertex v in the elimination order, connect the neighbors of v that appear
+    # after v in the elimination order.
+    for v in π̄
+        higher_order[v] = false
+        neighbors = all_neighbors(H, v)
+        for i = 1:length(neighbors)-1
+            for j = i:length(neighbors)
+                u = H.labels[neighbors[i]]
+                w = H.labels[neighbors[j]]
+                if higher_order[u] && higher_order[w]
+                    add_edge!(H, u, w)
+                end
+            end
+        end
+    end
+    H
+end
+
+
+"""
+    restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
+
+Return an elimination order for 'H' with the vertices in 'C' appearing at the end.
+
+The algorithm is described by Shutski et al in https://arxiv.org/abs/1911.12242
+"""
+function restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
+    C = copy(C)
+    cardinality = Dict{Symbol, Int}(H.labels .=> 0)
+    is_not_in_π̄ = Dict{Symbol, Bool}(H.labels .=> true)
+    π̄ = Array{Symbol, 1}(undef, nv(H))
+
+    # Create the elimination order starting at the end and working back to the beginning.
+    for i = length(π̄):-1:1
+        # Select a vertex to appear next in the elimination order.
+        if length(C) > 0
+            v = pop!(C)
+        else
+            v = argmax(cardinality)
+        end
+
+        # Add the vertex to the elimination order, and remove it from the cardinality map.
+        delete!(cardinality, v)
+        π̄[i] = v
+        is_not_in_π̄[v] = false
+
+        # Update the cardinality of the remaining vertices.
+        for w_ind in all_neighbors(H, v)
+            w = H.labels[w_ind]
+            if is_not_in_π̄[w]
+                cardinality[w] += 1
+            end
+        end
+    end
+    π̄
+end
