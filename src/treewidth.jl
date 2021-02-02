@@ -47,71 +47,73 @@ function quickbb(G::lg.AbstractGraph;
 
     # Assuming Gogate's binary can be run using docker in quickbb/ located in same
     # directory as the current file.
-    qbb_dir = @__FILE__
-    qbb_dir = qbb_dir[1:end-12] * "quickbb"
+    qbb_dir = dirname(@__FILE__) * "/quickbb"
     work_dir = pwd()
-    cd(qbb_dir)
-
-    # Write the graph G to a CNF file for the quickbb binary and clear any output from
-    # previous runs. 
     qbb_out = "qbb_$(proc_id).out"; graph_cnf = "graph_$(proc_id).cnf"
-    graph_to_cnf(G, graph_cnf)
-    rm(qbb_out; force=true)
 
-    # Write the appropriate command to call quickbb with the specified options.
-    if Sys.isapple()
-        quickbb_cmd = ["docker", "run", "-v", "$(qbb_dir):/app", "myquickbb"]
-        if order == :random
-            append!(quickbb_cmd, ["--random-ordering"])
-        elseif order == :min_fill
-            append!(quickbb_cmd, ["--min-fill-ordering"])
-        end
-        if time > 0
-            append!(quickbb_cmd, ["--time", string(time)])
-        end
-        append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
-        quickbb_cmd = Cmd(quickbb_cmd)
+    try
+        # Write the graph G to a CNF file for the quickbb binary and clear any output from
+        # previous runs. 
+        cd(qbb_dir)
+        graph_to_cnf(G, graph_cnf)
+        rm(qbb_out; force=true)
 
-        # run the quickbb command.
-        if verbose
-            run(quickbb_cmd)
-        else
-            out = Pipe()
-            run(pipeline(quickbb_cmd, stdout=out, stderr=out))
+        # Write the appropriate command to call quickbb with the specified options.
+        if Sys.isapple()
+            quickbb_cmd = ["docker", "run", "-v", "$(qbb_dir):/app", "myquickbb"]
+            if order == :random
+                append!(quickbb_cmd, ["--random-ordering"])
+            elseif order == :min_fill
+                append!(quickbb_cmd, ["--min-fill-ordering"])
+            end
+            if time > 0
+                append!(quickbb_cmd, ["--time", string(time)])
+            end
+            append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
+            quickbb_cmd = Cmd(quickbb_cmd)
+
+            # run the quickbb command.
+            if verbose
+                run(quickbb_cmd)
+            else
+                out = Pipe()
+                run(pipeline(quickbb_cmd, stdout=out, stderr=out))
+            end
+
+        elseif Sys.islinux()
+            quickbb_cmd = ["./quickbb_64"]
+            if order == :random
+                append!(quickbb_cmd, ["--random-ordering"])
+            elseif order == :min_fill
+                append!(quickbb_cmd, ["--min-fill-ordering"])
+            end
+            if time > 0
+                append!(quickbb_cmd, ["--time", string(time)])
+            end
+            append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
+            quickbb_cmd = Cmd(quickbb_cmd)
+
+            # run the quickbb command.
+            if verbose
+                run(quickbb_cmd)
+            else
+                out = Pipe()
+                run(pipeline(quickbb_cmd, stdout=out, stderr=out))
+            end
         end
 
-    elseif Sys.islinux()
-        quickbb_cmd = ["./quickbb_64"]
-        if order == :random
-            append!(quickbb_cmd, ["--random-ordering"])
-        elseif order == :min_fill
-            append!(quickbb_cmd, ["--min-fill-ordering"])
-        end
-        if time > 0
-            append!(quickbb_cmd, ["--time", string(time)])
-        end
-        append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
-        quickbb_cmd = Cmd(quickbb_cmd)
+        # Read in the output from quickbb.
+        lines = readlines(qbb_out)
+        treewidth = parse(Int, split(lines[1])[end])
+        perfect_elimination_order = parse.(Int, split(lines[end]))
+        return treewidth, perfect_elimination_order
 
-        # run the quickbb command.
-        if verbose
-            run(quickbb_cmd)
-        else
-            out = Pipe()
-            run(pipeline(quickbb_cmd, stdout=out, stderr=out))
-        end
+    finally
+        # Clean up before returning results.
+        rm(qbb_out; force=true)
+        rm(graph_cnf; force=true)
+        cd(work_dir)
     end
-
-    # Read in the output from quickbb.
-    lines = readlines(qbb_out)
-    treewidth = parse(Int, split(lines[1])[end])
-    perfect_elimination_order = parse.(Int, split(lines[end]))
-
-    # Clean up before returning results.
-    rm(qbb_out; force=true)
-    rm(graph_cnf; force=true)
-    cd(work_dir)
-    treewidth, perfect_elimination_order
 end
 
 function quickbb(G::LabeledGraph; 
