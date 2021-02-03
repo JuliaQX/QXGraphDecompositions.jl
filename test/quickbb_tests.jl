@@ -30,8 +30,19 @@
     @test length(peo) == N
     @test length(Set(peo)) == N
 
+    tw, peo = quickbb(G; order=:min_fill, lb=true)
+    @test tw == 9
+    @test length(peo) == N
+    @test length(Set(peo)) == N
+
+    tw, peo = quickbb(G; time=5, order=:min_fill, lb=true)
+    @test tw == 9
+    @test length(peo) == N
+    @test length(Set(peo)) == N
+
     G = LabeledGraph(G, [Symbol(:vert_, v) for v in 1:lg.nv(G)])
     tw, peo = quickbb(G)
+    @test tw == 9
     @test typeof(peo) == Array{Symbol, 1}
     @test Set(peo) == Set([Symbol(:vert_, v) for v in 1:nv(G)])
 end
