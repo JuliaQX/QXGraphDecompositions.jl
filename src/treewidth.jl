@@ -36,12 +36,14 @@ The QuickBB algorithm is described in arXiv:1207.4109v1
 # Keywords
 - `time::Integer=0`: the number of second to run the quickbb binary for.
 - `order::Symbol=:_`: the branching order to be used by quickbb (:random or :min_fill).
+- `lb::Bool=false`: set if a lowerbound for the treewidth should be computed.
 - `verbose::Bool=false`: set to true to print quickbb stdout and stderr output.
 - `proc_id::Integer=0`: used to create uniques names of files for different processes.
 """
 function quickbb(G::lg.AbstractGraph; 
                 time::Integer=0, 
                 order::Symbol=:_, 
+                lb::Bool=false,
                 verbose::Bool=false,
                 proc_id::Integer=0)::Tuple{Int, Array{Int, 1}}
 
@@ -69,6 +71,9 @@ function quickbb(G::lg.AbstractGraph;
             if time > 0
                 append!(quickbb_cmd, ["--time", string(time)])
             end
+            if lb
+                append!(quickbb_cmd, ["--lb"])
+            end
             append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
             quickbb_cmd = Cmd(quickbb_cmd)
 
@@ -90,6 +95,9 @@ function quickbb(G::lg.AbstractGraph;
             if time > 0
                 append!(quickbb_cmd, ["--time", string(time)])
             end
+            if lb
+                append!(quickbb_cmd, ["--lb"])
+            end
             append!(quickbb_cmd, ["--outfile", qbb_out, "--cnffile", graph_cnf])
             quickbb_cmd = Cmd(quickbb_cmd)
 
@@ -105,7 +113,11 @@ function quickbb(G::lg.AbstractGraph;
         # Read in the output from quickbb.
         lines = readlines(qbb_out)
         treewidth = parse(Int, split(lines[1])[end])
-        perfect_elimination_order = parse.(Int, split(lines[end]))
+        if lb
+            perfect_elimination_order = parse.(Int, split(lines[end-1]))
+        else
+            perfect_elimination_order = parse.(Int, split(lines[end]))
+        end
         return treewidth, perfect_elimination_order
 
     finally
@@ -119,10 +131,11 @@ end
 function quickbb(G::LabeledGraph; 
                 time::Integer=0, 
                 order::Symbol=:_, 
+                lb::Bool=false,
                 verbose::Bool=false,
                 proc_id::Integer=0)::Tuple{Int, Array{Symbol, 1}}
 
-    treewidth, peo = quickbb(G.graph; time=time, order=order, 
+    treewidth, peo = quickbb(G.graph; time=time, order=order, lb=lb, 
                              verbose=verbose, proc_id=proc_id)
 
     # Convert the perfect elimination order to an array of vertex labels before returning
