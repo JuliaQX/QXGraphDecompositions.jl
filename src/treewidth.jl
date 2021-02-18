@@ -1,7 +1,7 @@
 import LightGraphs; lg = LightGraphs
 
-export quickbb
-export greedy_treewidth_deletion, find_treewidth_from_order
+export quickbb, graph_to_cnf
+export greedy_treewidth_deletion, find_treewidth_from_order, direct_treewidth_score
 export build_chordal_graph, restricted_mcs
 
 # *************************************************************************************** #
@@ -255,8 +255,9 @@ SCORES[:direct_treewidth] = direct_treewidth_score
 
 Return a chordal graph built from 'G' using the elimination order 'π̄'.
 
-The returned graph is created from 'G' by iterating of the vertices of 'G', according to the
-order 'π̄', and for each vertex, connecting all the neighbors that appear later in the order.
+The returned graph is created from 'G' by iterating over the vertices of 'G', according to 
+the order 'π̄', and for each vertex, connecting all the neighbors that appear later in the 
+order.
 """
 function build_chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
     if !(Set(π̄) == Set(G.labels)) || !(length(π̄) == nv(G))
