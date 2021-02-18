@@ -4,7 +4,7 @@ export LabeledGraph
 export get_vertex, vertices, nv, add_vertex!, rem_vertex!
 export edges, ne, add_edge!, has_edge, rem_edge!
 export degree, all_neighbors, eliminate!
-export line_graph
+export line_graph, combine_labels
 
 # **************************************************************************************** #
 #                          Labeled Graph Struct and interface
@@ -16,8 +16,21 @@ export line_graph
 # particular label.
 
 """
-Struct to represent a labeled graph. Unique symbols are created for each vertex
-and remain unaltered during the lifetime of the graph.
+Struct to represent a labeled graph. Unique symbols are created for each vertex if none are
+provided and remain unaltered during the lifetime of the graph.
+
+# Example
+```julia-repl
+julia> g = LabeledGraph()
+LabeledGraph({0, 0} undirected simple Int64 graph, Symbol[])
+
+julia> add_vertex!(g, :a_vertex_label)
+1-element Array{Symbol,1}:
+ :a_vertex_label
+
+julia> g.labels[1]
+:a_vertex_label
+```
 """
 struct LabeledGraph
     graph::lg.AbstractGraph

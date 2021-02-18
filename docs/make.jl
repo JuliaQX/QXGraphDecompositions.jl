@@ -13,6 +13,8 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Labeled Graphs" => "LabeledGraph.md",
+        "Treewidth" => "treewidth.md",
     ],
 )
 
