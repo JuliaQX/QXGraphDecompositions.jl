@@ -39,6 +39,7 @@ struct LabeledGraph
     LabeledGraph() = new(lg.SimpleGraph(), Symbol[])
     LabeledGraph(G::lg.AbstractGraph) = new(deepcopy(G), Symbol.([1:lg.nv(G)...]))
     LabeledGraph(G::lg.AbstractGraph, labels::Array{Symbol, 1}) = new(deepcopy(G), labels)
+    LabeledGraph(N::Int) = LabeledGraph(lg.SimpleGraph(N))
 end
 
 """
