@@ -15,6 +15,8 @@ makedocs(;
         "Home" => "index.md",
         "Labeled Graphs" => "LabeledGraph.md",
         "Treewidth" => "treewidth.md",
+        "Index" => "docs_index.md",
+        "LICENSE" => "license.md"
     ],
 )
 
