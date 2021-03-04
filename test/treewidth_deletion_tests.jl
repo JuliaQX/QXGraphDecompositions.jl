@@ -14,20 +14,20 @@
     end
 
     G = LabeledGraph(G)
-    tw, π̄ = quickbb(G)
+    π̄, md = quickbb(G); tw = md[:treewidth]
 
     # check if the treewidth is reduced by the correct amount and number of vertices removed
     # is correct. 
     Ḡ, μ = greedy_treewidth_deletion(G, 5)
-    τ, peo = quickbb(Ḡ)
-    @test τ == tw - 5
+    peo, modified_md = quickbb(Ḡ)
+    @test modified_md[:treewidth] == tw - 5
     @test nv(Ḡ) == 15
     @test length(μ) == 5
 
-    Ḡ, μ, π̃, τ = greedy_treewidth_deletion(G, 5; 
-                                           score_function=:direct_treewidth, elim_order=π̄)
-    @test τ == tw - 5
+    Ḡ, μ, π̃s, τs = greedy_treewidth_deletion(G, 5; 
+                                             score_function=:direct_treewidth, elim_order=π̄)
+    @test τs == [tw-1, tw-2, tw-3, tw-4, tw-5]
     @test nv(Ḡ) == 15
     @test length(μ) == 5
-    @test length(π̃) == nv(Ḡ)
+    @test length(π̃s[end]) == nv(Ḡ)
 end

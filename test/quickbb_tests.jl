@@ -10,39 +10,39 @@
 
     # check if the treewidth is correct, the peo has the correct length and doesn'tensor
     # contain repeated vertices. 
-    tw, peo = quickbb(G)
-    @test tw == 9
+    peo, md = quickbb(G)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
-    tw, peo = quickbb(G; time=5)
-    @test tw == 9
+    peo, md = quickbb(G; time=5)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
-    tw, peo = quickbb(G; order=:min_fill)
-    @test tw == 9
+    peo, md = quickbb(G; order=:min_fill)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
-    tw, peo = quickbb(G; order=:random)
-    @test tw == 9
+    peo, md = quickbb(G; order=:random)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
-    tw, peo = quickbb(G; order=:min_fill, lb=true)
-    @test tw == 9
+    peo, md = quickbb(G; order=:min_fill, lb=true)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
-    tw, peo = quickbb(G; time=5, order=:min_fill, lb=true)
-    @test tw == 9
+    peo, md = quickbb(G; time=5, order=:min_fill, lb=true)
+    @test md[:treewidth] == 9
     @test length(peo) == N
     @test length(Set(peo)) == N
 
     G = LabeledGraph(G, [Symbol(:vert_, v) for v in 1:lg.nv(G)])
-    tw, peo = quickbb(G)
-    @test tw == 9
+    peo, md = quickbb(G)
+    @test md[:treewidth] == 9
     @test typeof(peo) == Array{Symbol, 1}
     @test Set(peo) == Set([Symbol(:vert_, v) for v in 1:nv(G)])
 end

@@ -40,7 +40,15 @@ struct LabeledGraph
     LabeledGraph(G::lg.AbstractGraph) = new(deepcopy(G), Symbol.([1:lg.nv(G)...]))
     LabeledGraph(G::lg.AbstractGraph, labels::Array{Symbol, 1}) = new(deepcopy(G), labels)
     LabeledGraph(N::Int) = LabeledGraph(lg.SimpleGraph(N))
+    LabeledGraph(labels::Array{Symbol, 1}) = new(lg.SimpleGraph(length(labels)), labels)
 end
+
+"""
+    labels(G::LabeledGraph)
+
+Return the labels contained in a LabeledGraph.
+"""
+labels(G::LabeledGraph) = G.labels
 
 """
     get_vertex(G::LabledGraph, v_label)
