@@ -1,7 +1,7 @@
 name = "QXGraph"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
 authors = ["QuantEx team"]
-version = "0.1.1"
+version = "0.1.2"
 
 [deps]
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"

@@ -1,4 +1,15 @@
+stages:
+  - test
+  - docs
+
 .script:
+  before_script:
+    ##
+    ## Install ssh-agent if not already installed, it is required by Docker.
+    ## (change apt-get to yum if you use an RPM-based image)
+    ##
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client git -y )'
+
   script:
     - |
       julia --project=@. -e '
@@ -16,10 +27,42 @@
         c, t = get_summary(process_folder())
         using Printf
         @printf "Test coverage %.2f%%\n" 100c / t'
+.docs:
+  script:
+    - cd docs/
+    - |
+      julia --project -e '
+        using Pkg
+        Pkg.develop(PackageSpec(path=joinpath(pwd(), "..")))
+        Pkg.instantiate()'
+    - julia --project make.jl
+
 Julia 1.5:
+  stage: test
   image: julia:1.5
   tags:
     - docker
   extends:
     - .script
     - .coverage
+
+Julia 1.6:
+  stage: test
+  image: julia:1.6
+  tags:
+    - docker
+  extends:
+    - .script
+    - .coverage
+
+docs:
+  stage: docs
+  image: julia:1.5
+  tags:
+    - docker
+  extends:
+    - .script
+    - .docs
+  artifacts:
+    paths:
+      - docs/build

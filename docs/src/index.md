@@ -32,18 +32,18 @@ looks like:
 ```
 using QXGraph
 
-# Create a LabeledGraph with N fully connected vertices
+# Create a LabeledGraph with N fully connected vertices.
 N = 10
 G = LabeledGraph(N)
 for i = 1:N, j = i+1:N
     add_edge!(G, i, j)
 end
 
-# To get an elimination order for G with minimal treewidth we call quickbb
+# To get an elimination order for G with minimal treewidth we call quickbb.
 elimination_order, md = quickbb(G)
 @show elimination_order
 
-# The treewidth of the elimination order is contained in the metadata dictionary by quickbb
+# The treewidth of the elimination order is contained in the metadata dictionary returned by quickbb.
 @show md[:treewidth]
 ```
 
