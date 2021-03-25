@@ -22,15 +22,36 @@ the Julia REPL using.
 
 ```
 import Pkg
-Pkg.install("QXGraph")
+Pkg.add("QXGraph")
 ```
 
-## Running the unittests
-
-Unittests can be run from the QXGraph root folder with
+To ensure everything is working, the unittests can be run using
 
 ```
-julia --project=. tests/runtests.jl
+import Pkg; Pkg.test()
+```
+
+## Example usage
+
+An example of how QXGraph can be used to calculate a vertex elimination order for a graph
+looks like:
+
+```
+using QXGraph
+
+# Create a LabeledGraph with N fully connected vertices.
+N = 10
+G = LabeledGraph(N)
+for i = 1:N, j = i+1:N
+    add_edge!(G, i, j)
+end
+
+# To get an elimination order for G with minimal treewidth we call quickbb.
+elimination_order, md = quickbb(G)
+@show elimination_order
+
+# The treewidth of the elimination order is contained in the metadata dictionary returned by quickbb.
+@show md[:treewidth]
 ```
 
 # Contributing
@@ -38,18 +59,35 @@ Contributions from users are welcome and we encourage users to open issues and s
 merge/pull requests for any problems or feature requests they have. The 
 [CONTRIBUTING.md](CONTRIBUTION.md) has further details of the contribution guidelines.
 
-## Building the documentation
 
-This package uses Documenter.jl to generate html documentation from the sources.
-To build the documentation, run the make.jl script from the docs folder.
+## Building documentation
 
-```
-cd docs && julia make.jl
-```
+QXTn.jl uses [Documenter.jl](https://juliadocs.github.io/Documenter.jl/stable/) to generate documentation. To build the documentation locally run the following from the root folder.
 
-The documentation will be placed in the build folder and can be hosted locally
-by starting a local http server with
+The first time it is will be necessary to instantiate the environment to install dependencies
 
 ```
-cd build && python3 -m http.server
+julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
 ```
+
+and then to build the documentation
+
+```
+julia --project=docs/ docs/make.jl
+```
+
+The generated document will be in the `docs/build` folder. To serve these locally one can
+use the LiveServer package as
+
+```
+julia --project -e 'import Pkg; Pkg.add("LiveServer");
+julia --project -e  'using LiveServer; serve(dir="docs/build")'
+```
+
+Or with python3 using from the `docs/build` folder using
+
+```
+python3 -m http.server
+```
+
+The generated documentation should now be viewable locally in a browser at `http://localhost:8000`.

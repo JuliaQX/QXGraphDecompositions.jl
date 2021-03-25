@@ -1,6 +1,7 @@
 using QXGraph
 using Documenter
 
+DocMeta.setdocmeta!(QXGraph, :DocTestSetup, :(using QXGraph); recursive=true)
 makedocs(;
     modules=[QXGraph],
     authors="QuantEx team",
