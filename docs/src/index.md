@@ -21,7 +21,13 @@ the Julia REPL using.
 
 ```
 import Pkg
-Pkg.install("QXGraph")
+Pkg.add("QXGraph")
+```
+
+To ensure everything is working, the unittests can be run using
+
+```
+import Pkg; Pkg.test()
 ```
 
 ### Example usage
