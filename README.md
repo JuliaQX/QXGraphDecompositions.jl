@@ -1,28 +1,28 @@
-# QXGraph
+# QXGraphs
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaQX.github.io/QXGraph.jl/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaQX.github.io/QXGraph.jl/dev)
-[![Build Status](https://github.com/JuliaQX/QXGraph.jl/workflows/CI/badge.svg)](https://github.com/JuliaQX/QXGraph.jl/actions)
-[![Build Status](https://github.com/JuliaQX/QXGraph.jl/badges/master/pipeline.svg)](https://github.com/JuliaQX/QXGraph.jl/pipelines)
-[![Coverage](https://github.com/JuliaQX/QXGraph.jl/badges/master/coverage.svg)](https://github.com/JuliaQX/QXGraph.jl/commits/master)
-[![Coverage](https://codecov.io/gh/JuliaQX/QXGraph.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaQX/QXGraph.jl)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://JuliaQX.github.io/QXGraphs.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://JuliaQX.github.io/QXGraphs.jl/dev)
+[![Build Status](https://github.com/JuliaQX/QXGraphs.jl/workflows/CI/badge.svg)](https://github.com/JuliaQX/QXGraphs.jl/actions)
+<!-- [![Build Status](https://github.com/JuliaQX/QXGraphs.jl/badges/master/pipeline.svg)](https://github.com/JuliaQX/QXGraphs.jl/pipelines)
+[![Coverage](https://github.com/JuliaQX/QXGraphs.jl/badges/master/coverage.svg)](https://github.com/JuliaQX/QXGraphs.jl/commits/master) -->
+[![Coverage](https://codecov.io/gh/JuliaQX/QXGraphs.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaQX/QXGraphs.jl)
 
 
-QXGraph is a Julia package for analysing and manipulating graph structures describing tensor 
+QXGraphs is a Julia package for analysing and manipulating graph structures describing tensor 
 networks in the QuantEx project. It provides functions for solving graph theoretic problems 
 related to the task of efficiently slicing and contracting a tensor network.
 
-QXGraph was developed as part of the QuantEx project, one of the individual software 
+QXGraphs was developed as part of the QuantEx project, one of the individual software 
 projects of WP8 of [PRACE](https://prace-ri.eu/) 6IP.
 
 # Installation
 
-QXGraph is a Julia package and can be installed using Julia's inbuilt package manager from 
+QXGraphs is a Julia package and can be installed using Julia's inbuilt package manager from 
 the Julia REPL using.
 
 ```
 import Pkg
-Pkg.add("QXGraph")
+Pkg.add("QXGraphs")
 ```
 
 To ensure everything is working, the unittests can be run using
@@ -33,11 +33,11 @@ import Pkg; Pkg.test()
 
 ## Example usage
 
-An example of how QXGraph can be used to calculate a vertex elimination order for a graph
+An example of how QXGraphs can be used to calculate a vertex elimination order for a graph
 looks like:
 
 ```
-using QXGraph
+using QXGraphs
 
 # Create a LabeledGraph with N fully connected vertices.
 N = 10
