@@ -1,15 +1,15 @@
-using QXGraph
+using QXGraphs
 using Documenter
 
-DocMeta.setdocmeta!(QXGraph, :DocTestSetup, :(using QXGraph); recursive=true)
+DocMeta.setdocmeta!(QXGraphs, :DocTestSetup, :(using QXGraphs); recursive=true)
 makedocs(;
-    modules=[QXGraph],
+    modules=[QXGraphs],
     authors="QuantEx team",
-    repo="https://github.com/JuliaQX/QXGraph.jl/blob/{commit}{path}#L{line}",
-    sitename="QXGraph.jl",
+    repo="https://github.com/JuliaQX/QXGraphs.jl/blob/{commit}{path}#L{line}",
+    sitename="QXGraphs.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://JuliaQX.github.io/QXGraph.jl",
+        canonical="https://JuliaQX.github.io/QXGraphs.jl",
         assets=String[],
     ),
     pages=[
@@ -22,5 +22,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/JuliaQX/QXGraph.jl",
+    repo="github.com/JuliaQX/QXGraphs.jl",
 )
