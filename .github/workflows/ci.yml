@@ -54,8 +54,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using QXGraph
-            doctest(QXGraph)'
+            using QXGraphs
+            doctest(QXGraphs)'
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
