@@ -1,4 +1,4 @@
-using QXGraphs
+using QXGraphDecompositions
 using Test
 
 import LightGraphs; lg = LightGraphs

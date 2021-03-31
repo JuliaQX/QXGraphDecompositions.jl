@@ -1,4 +1,4 @@
-name = "QXGraphs"
+name = "QXGraphDecompositions"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
 authors = ["QuantEx team"]
 version = "0.1.2"

@@ -7,8 +7,9 @@ it is eliminated according the order. In the context of tensor network contracti
 treewidth serves as an indirect measure of the size of the largest intermediate tensor 
 produced while contracting a network according to a the contraction plan built from the
 elimination order. It is thus also an indirect measure of the computational cost of 
-contracting a tensor network according to the corresponding contraction plan. QXGraphs 
-provides functions for finding such elimination orders with minimal treewidth.
+contracting a tensor network according to the corresponding contraction plan. 
+QXGraphDecompositions provides functions for finding such elimination orders with minimal 
+treewidth.
 
 ## Vertex Elimination Orders
 
@@ -16,8 +17,8 @@ A standard algorithm for finding elimination orders, whose treewidth provides a 
 bound for the minimal treewidth of a graph, is known as the QuickBB algorithm.
 It was first proposed by Vibhav Gogate and Rina Dechter in their 2004 paper "A complete 
 Anytime Algorithm for Treewidth". The paper along with a binary implementation of the 
-algorithm is provided [here](http://www.hlt.utdallas.edu/~vgogate/quickbb.html). QXGraphs
-provides a julia wrapper for their binary which requires a linux OS.
+algorithm is provided [here](http://www.hlt.utdallas.edu/~vgogate/quickbb.html). 
+QXGraphDecompositions provides a julia wrapper for their binary which requires a linux OS.
 
 ```@docs
 quickbb
