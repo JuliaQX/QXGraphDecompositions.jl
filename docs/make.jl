@@ -5,11 +5,11 @@ DocMeta.setdocmeta!(QXGraphs, :DocTestSetup, :(using QXGraphs); recursive=true)
 makedocs(;
     modules=[QXGraphs],
     authors="QuantEx team",
-    repo="https://github.com/JuliaQX/QXGraphs.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/JuliaQX/QXGraphDecompositions.jl/blob/{commit}{path}#L{line}",
     sitename="QXGraphs.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://JuliaQX.github.io/QXGraphs.jl",
+        canonical="https://JuliaQX.github.io/QXGraphDecompositions.jl",
         assets=String[],
     ),
     pages=[
@@ -22,5 +22,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/JuliaQX/QXGraphs.jl",
+    repo="github.com/JuliaQX/QXGraphDecompositions.jl",
 )
