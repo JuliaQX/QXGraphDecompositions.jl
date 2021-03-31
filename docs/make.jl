@@ -1,12 +1,12 @@
-using QXGraphs
+using QXGraphDecompositions
 using Documenter
 
-DocMeta.setdocmeta!(QXGraphs, :DocTestSetup, :(using QXGraphs); recursive=true)
+DocMeta.setdocmeta!(QXGraphDecompositions, :DocTestSetup, :(using QXGraphDecompositions); recursive=true)
 makedocs(;
-    modules=[QXGraphs],
+    modules=[QXGraphDecompositions],
     authors="QuantEx team",
     repo="https://github.com/JuliaQX/QXGraphDecompositions.jl/blob/{commit}{path}#L{line}",
-    sitename="QXGraphs.jl",
+    sitename="QXGraphDecompositions.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://JuliaQX.github.io/QXGraphDecompositions.jl",
