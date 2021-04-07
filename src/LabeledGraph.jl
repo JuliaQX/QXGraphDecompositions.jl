@@ -4,7 +4,7 @@ export LabeledGraph, labels, graph_to_gr, graph_to_cnf
 export get_vertex, vertices, nv, add_vertex!, rem_vertex!
 export edges, ne, add_edge!, has_edge, rem_edge!
 export degree, all_neighbors, eliminate!, cliqueness
-export line_graph, combine_labels, tree_from_tree_decompostion, chordal_graph
+export line_graph, tree_from_tree_decompostion, chordal_graph
 
 
 

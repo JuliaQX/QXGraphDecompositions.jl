@@ -15,7 +15,7 @@ have been made.
 LabeledGraph
 ```
 
-### Example usage
+## Example usage
 
 An example of how to use LabeledGraphs is shown below. Note, whenever a modification is made
 to the graph which re-indexes or re-positions the vertices in the graph, the array of vertex 
@@ -43,12 +43,13 @@ rem_vertex!(G, 1)
 @show G.labels[1]
 ```
 
-### LabeledGraph Interface
+## LabeledGraph Interface
 
 The interface for the LabeledGraph struct is intended to reflect the interface implemented 
 by the LightGraphs package for the SimpleGraph struct.
 
 ```@docs
+labels
 get_vertex
 vertices
 nv
@@ -62,11 +63,20 @@ rem_edge!
 degree
 all_neighbors
 eliminate!
+cliqueness
 ```
 
-### Line Graph
+## LabeledGraph Constructors
 
 ```@docs
 line_graph
-combine_labels
+tree_from_tree_decompostion
+chordal_graph
+```
+
+## LabeledGraph IO
+
+```@docs
+graph_to_gr
+graph_to_cnf
 ```

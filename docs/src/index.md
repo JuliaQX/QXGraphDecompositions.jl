@@ -5,9 +5,8 @@ CurrentModule = QXGraphDecompositions
 # QXGraphDecompositions
 
 QXGraphDecompositions is a Julia package for analysing and manipulating graph structures 
-describing tensor networks in the QuantEx project. It provides functions for solving graph 
-theoretic problems related to the task of efficiently slicing and contracting a tensor 
-network.
+describing tensor networks. It provides functions for solving graph theoretic problems 
+related to the task of efficiently slicing and contracting a tensor network.
 
 QXGraphDecompositions was developed as part of the QuantEx project, one of the individual 
 software projects of WP8 of [PRACE](https://prace-ri.eu/) 6IP.
