@@ -10,7 +10,7 @@
 
     # Check if the treewidth, number of bags and number of vertices is correct and check
     # that the tree decomposition has no edges.
-    tree_decomp = flow_cutter(G; time=10)
+    tree_decomp = flow_cutter(G; time=20)
     @test tree_decomp[:treewidth] == 9
     @test tree_decomp[:num_bags] == 1
     @test tree_decomp[:num_vertices] == 10
@@ -34,7 +34,7 @@
 
     # Check if the treewidth, number of bags and number of vertices is correct and check
     # that the tree decomposition has no edges.
-    tree_decomp = flow_cutter(G; time=10)
+    tree_decomp = flow_cutter(G; time=20)
     @test tree_decomp[:treewidth] == N-1
     @test tree_decomp[:num_bags] == 2
     @test length(tree_decomp[:edges]) == 1
