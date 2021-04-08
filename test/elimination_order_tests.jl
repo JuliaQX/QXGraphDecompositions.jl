@@ -43,7 +43,7 @@
 
     # Get a tree decomposition of the square lattice graph and test converting it to an
     # elimination order.
-    tree_decomp = flow_cutter(G; time=10)
+    tree_decomp = flow_cutter(G; time=15)
     td_order = order_from_tree_decomposition(tree_decomp)
     @test find_treewidth_from_order(G, td_order) == tree_decomp[:treewidth]
     @test length(td_order) == N*N
