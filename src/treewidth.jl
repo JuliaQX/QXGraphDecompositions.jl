@@ -37,26 +37,29 @@ Computing Tree Decompositions with FlowCutter - https://arxiv.org/abs/1709.08949
 function flow_cutter(G::lg.AbstractGraph; time::Integer=10)
     # Create a temporary directory with the input and output files for flow cutter.
     out = Pipe()
-    flowcutter_dir = dirname(FlowCutterPACE17_jll.flow_cutter_pace17_path)
-    mktempdir(flowcutter_dir) do tdir
+    flow_cutter_dir = dirname(FlowCutterPACE17_jll.flow_cutter_pace17_path)
+    mktempdir(flow_cutter_dir) do tdir
         graph_file = tdir * "/graph.gr"
         td_file = tdir * "/td.out"
         graph_to_gr(G, graph_file)
 
         # Call and run flow cutter for the specified duration of time.
         flow_cutter_pace17() do exe
-            flowcutter_cmd = [exe, graph_file]
-            flowcutter_cmd = Cmd(flowcutter_cmd)
-            flowcutter_proc = run(pipeline(flowcutter_cmd, td_file); wait=false)
+            flow_cutter_cmd = [exe, graph_file]
+            flow_cutter_cmd = Cmd(flow_cutter_cmd)
+            flow_cutter_proc = run(pipeline(flow_cutter_cmd, td_file); wait=false)
+            while !process_running(flow_cutter_proc)
+                sleep(1)
+            end
             sleep(time)
-            kill(flowcutter_proc)
+            kill(flow_cutter_proc)
         end
-        flowcutter_output = readlines(td_file)
+        flow_cutter_output = readlines(td_file)
 
         # Read the output of flow cutter into a dictionary to be returned to the user.
         td = Dict{Symbol, Any}()
         td[:edges] = []
-        for line in flowcutter_output
+        for line in flow_cutter_output
             words = split(line)
             if words[1] == "c"
                 continue
