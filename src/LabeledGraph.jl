@@ -45,13 +45,6 @@ struct LabeledGraph
     LabeledGraph(labels::Array{Symbol, 1}) = new(lg.SimpleGraph(length(labels)), labels)
 end
 
-"""
-    labels(G::LabeledGraph)
-
-Return the labels contained in a LabeledGraph.
-"""
-labels(G::LabeledGraph) = G.labels
-
 
 """
     graph_to_gr(G::LabeledGraph, filename::String)
@@ -87,9 +80,17 @@ function graph_to_cnf(G::lg.AbstractGraph, filename::String)
 end
 
 
+
 # **************************************************************************************** #
 #                                Labeled Graph Interface
 # **************************************************************************************** #
+
+"""
+    labels(G::LabeledGraph)
+
+Return the labels contained in a LabeledGraph.
+"""
+labels(G::LabeledGraph) = G.labels
 
 """
     get_vertex(G::LabledGraph, v_label)

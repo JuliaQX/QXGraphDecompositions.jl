@@ -3,7 +3,7 @@ using FlowCutterPACE17_jll
 import LightGraphs; lg = LightGraphs
 
 export flow_cutter
-export min_fill_ub, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
+export min_fill, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
 export greedy_treewidth_deletion, direct_treewidth_score
 export quickbb
 
@@ -20,10 +20,16 @@ export quickbb
 Use the flow cutter algorithm to find a tree decomposition for the graph `G` with minimal
 treewidth.
 
-The returned tree decomposition is stored in a dictionary where the number of bags, the
-treewidth of the decomposition and the number vertices in the decomposed graph are indexed
-by the keys `:num_bags`, `:treewidth`, `:num_vertices` respectively. The key for the nth bag 
-is `:b_n`. The key `:edges` is paired with an array of edges in the tree decomposition.
+The tree decomposition is returned in a dictionary with the following key value pairs:
+- `:treewidth` => The treewidth of the tree decomposotion,  
+- `:num_bags` => The number of bags in the tree decomposition,
+- `:num_vertices` The number of vertices in `G`,
+- `:b_n` => The n-th bag of the decomposition where n is an integer from 1 to the number of 
+            bags in the decomposition. A bag is an array of vertices of `G`.
+- `:edges` => An array of integer pairs indicating the edges of the tree decomposition.
+
+If a tree decomposition is not found within the allocated time then an empty dictionary is
+returned.
 
 The flow cutter algorithm and how it is used to find tree decompositions is described by
 Michael Hamann and Ben Strasser in the following papers: 
@@ -48,7 +54,7 @@ function flow_cutter(G::lg.AbstractGraph; time::Integer=10)
             flow_cutter_cmd = [exe, graph_file]
             flow_cutter_cmd = Cmd(flow_cutter_cmd)
             flow_cutter_proc = run(pipeline(flow_cutter_cmd, td_file); wait=false)
-            while !process_running(flow_cutter_proc)
+            while !process_running(flow_cutter_proc) # Wait until process has started.
                 sleep(1)
             end
             sleep(time)
@@ -58,7 +64,7 @@ function flow_cutter(G::lg.AbstractGraph; time::Integer=10)
 
         # Read the output of flow cutter into a dictionary to be returned to the user.
         td = Dict{Symbol, Any}()
-        td[:edges] = []
+        length(flow_cutter_output) > 0 && (td[:edges] = Tuple{Int, Int}[])
         for line in flow_cutter_output
             words = split(line)
             if words[1] == "c"
@@ -86,12 +92,12 @@ flow_cutter(G::LabeledGraph; kwargs...) = flow_cutter(G.graph; kwargs...)
 # **************************************************************************************** #
 
 """
-    min_fill_ub(G::AbstractGraph)
+    min_fill(G::AbstractGraph)
 
 Returns the upper bound on the tree width of `G` found using the min-fill heuristic. An
 elimination order with the returned treewidth is also returned.
 """
-function min_fill_ub(G::LabeledGraph)
+function min_fill(G::LabeledGraph)
     G = deepcopy(G)
     # Initialise variables to track the maximum degree of a vertex, the elimination order
     # and how close the neighbourhood of each vertex in G is to being a clique.

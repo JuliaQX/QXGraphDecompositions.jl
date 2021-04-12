@@ -79,7 +79,7 @@
             add_edge!(G, i + N*(j-1), i + N*(j-1) + N)
         end
     end
-    treewidth_upperbound, min_fill_order = min_fill_ub(G)
+    treewidth_upperbound, min_fill_order = min_fill(G)
 
     # Create a chordal graph with respect to the order found and check if it has some of the 
     # correct properties.

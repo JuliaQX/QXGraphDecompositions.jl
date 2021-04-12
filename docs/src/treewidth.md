@@ -58,7 +58,7 @@ The min-fill heuristic is a popular heuristic for computing an upper bound on tr
 a graph and an elimination order with the returned treewidth.
 
 ```@docs
-min_fill_ub
+min_fill
 ```
 
 The following function can be used to recover a vertex elimination order from a tree 

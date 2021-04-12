@@ -10,7 +10,7 @@
 
     # Check if the treewidth is correct, the order has the correct length and doesn't
     # contain repeated vertices. 
-    treewidth_upperbound, elimination_order = min_fill_ub(G)
+    treewidth_upperbound, elimination_order = min_fill(G)
     @test treewidth_upperbound == 9
     @test length(elimination_order) == N
     @test length(Set(elimination_order)) == N
@@ -27,7 +27,7 @@
     end
 
     # Test the min fill heuristic on the square lattice graph.
-    treewidth_upperbound, min_fill_order = min_fill_ub(G)
+    treewidth_upperbound, min_fill_order = min_fill(G)
     @test treewidth_upperbound == N-1
     @test length(min_fill_order) == N*N
     @test length(Set(min_fill_order)) == N*N
