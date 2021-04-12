@@ -1,13 +1,15 @@
 import LightGraphs; lg = LightGraphs
 
-export LabeledGraph
+export LabeledGraph, labels, graph_to_gr, graph_to_cnf
 export get_vertex, vertices, nv, add_vertex!, rem_vertex!
 export edges, ne, add_edge!, has_edge, rem_edge!
-export degree, all_neighbors, eliminate!
-export line_graph, combine_labels
+export degree, all_neighbors, eliminate!, cliqueness
+export line_graph, tree_from_tree_decompostion, chordal_graph
+
+
 
 # **************************************************************************************** #
-#                          Labeled Graph Struct and interface
+#                                  Labeled Graph Struct
 # **************************************************************************************** #
 
 # TODO: It may be better to implement a subtype of AbstractGraph where the fadjlist
@@ -42,6 +44,46 @@ struct LabeledGraph
     LabeledGraph(N::Int) = LabeledGraph(lg.SimpleGraph(N))
     LabeledGraph(labels::Array{Symbol, 1}) = new(lg.SimpleGraph(length(labels)), labels)
 end
+
+
+"""
+    graph_to_gr(G::LabeledGraph, filename::String)
+
+Write the provided graph to a file in gr format.
+"""
+graph_to_gr(G::LabeledGraph, filename::String) = graph_to_gr(G.graph, filename::String)
+
+function graph_to_gr(G::lg.AbstractGraph, filename::String)
+    open(filename, "w") do io
+        write(io, "p tw $(lg.nv(G)) $(lg.ne(G))\n")
+        for e in lg.edges(G)
+            write(io, "$(e.src) $(e.dst)\n")
+        end
+    end
+end
+
+
+"""
+    graph_to_cnf(G::LabeledGraph, filename::String)
+
+Write the provided graph to a file in cnf format.
+"""
+graph_to_cnf(G::LabeledGraph, filename::String) = graph_to_cnf(G.graph, filename::String)
+
+function graph_to_cnf(G::lg.AbstractGraph, filename::String)
+    open(filename, "w") do io
+        write(io, "p cnf $(lg.nv(G)) $(lg.ne(G))\n")
+        for e in lg.edges(G)
+            write(io, "$(e.src) $(e.dst) 0\n")
+        end
+    end
+end
+
+
+
+# **************************************************************************************** #
+#                                Labeled Graph Interface
+# **************************************************************************************** #
 
 """
     labels(G::LabeledGraph)
@@ -214,39 +256,158 @@ function eliminate!(G::LabeledGraph, v_label::Symbol)
     eliminate!(G, v)
 end
 
+"""
+    eliminate!(G::AbstractGraph, v::Integer)
+
+Connect all the neighbours of v together before removing v from G.
+"""
 function eliminate!(G::LabeledGraph, v::Integer)
-    Nᵥ = all_neighbors(G, v)
-    for (i, vi) in enumerate(Nᵥ)
-        for ui in Nᵥ[i+1:end]
-            add_edge!(G, vi, ui)
+    # Loop over all pairs of neighbours (vi, ui) of v and try connect them with an edge
+    # before removing v from G.
+    Nᵥ = all_neighbors(G, v)::Array{Int64, 1}
+    for i in 1:length(Nᵥ)
+        vi = Nᵥ[i]
+        for j in i+1:length(Nᵥ)
+            uj = Nᵥ[j]
+            add_edge!(G, vi, uj)
         end
     end
     rem_vertex!(G, v)
 end
 
+"""
+    eliminate!(G::AbstractGraph, v::Integer, c_map::Dict{Int, Int})
+
+Connect all the neighbours of v together before removing v from G. 
+
+The dictionary `c_map` mapping vertices of 'G' to their cliqueness is updated inplace 
+accordingly.
+"""
+function eliminate!(G::LabeledGraph, v::Integer, c_map::Dict{Int, Int})
+    Nᵥ = all_neighbors(G, v)::Array{Int64, 1}
+    # Loop over all pairs of vertices in the neighbourhood of 'v'.
+    for i in 1:length(Nᵥ)
+        vi = Nᵥ[i]
+        for j in i+1:length(Nᵥ)
+            ui = Nᵥ[j]
+
+            # Try add an edge connecting vi and ui. If successful, update `c_map`.
+            edge_added = add_edge!(G, vi, ui)::Bool
+            if edge_added
+                # Common neighbours of vi and ui have one less edge to add
+                # when being eliminated after vi and ui are connected.
+                Nvi = all_neighbors(G, vi)::Array{Int64, 1}
+                Nui = all_neighbors(G, ui)::Array{Int64, 1}
+                for n in intersect(Nvi, Nui)
+                    c_map[n] -= 1
+                end
+
+                # ui and vi are now neighbours so their cliqueness may increase.
+                for n in Nvi
+                    if !(n == ui) && !(has_edge(G, n, ui)::Bool)
+                        c_map[vi] += 1
+                    end
+                end
+                for n in Nui
+                    if !(n == vi) && !(has_edge(G, n, vi)::Bool)
+                        c_map[ui] += 1
+                    end
+                end
+            end
+        end
+    end
+
+    # Removing v from G means it's also removed from its neighbour's neighbourhood, so their 
+    # cliqueness may be reduced.
+    for n in Nᵥ
+        Nₙ = all_neighbors(G, n)::Array{Int64, 1}
+        for u in Nₙ
+            if !(u == v)
+                edge_exists = has_edge(G, v, u)::Bool
+                if !edge_exists
+                    c_map[n] -= 1
+                end
+            end
+        end
+    end
+    # Remove v from G and the corresponding entry from c_map.
+    N = nv(G)::Int
+    c_map[v] = c_map[N]
+    delete!(c_map, N)
+    rem_vertex!(G, v)
+end
+
+"""
+    cliqueness(G::LabeledGraph, v::Symbol)
+
+Return the number of edges that need to be added to `G` in order to make the neighborhood of 
+vertex labeled by the symbol `v` a clique.
+"""
+cliqueness(G::LabeledGraph, v::Symbol)::Int = cliqueness(G, get_vertex(G, v))
+
+"""
+    cliqueness(G::LabeledGraph, v::Integer)
+
+Return the number of edges that need to be added to `G` in order to make the neighborhood of 
+vertex `v` a clique.
+"""
+cliqueness(G::LabeledGraph, v::Integer)::Int = cliqueness(G.graph, v)
+
+function cliqueness(G::lg.AbstractGraph, v::Integer)::Int
+    neighborhood = lg.all_neighbors(G, v)::Array{Int64, 1}
+    count = 0
+    for i in 1:length(neighborhood)
+        for j in i+1:length(neighborhood)
+            vi = neighborhood[i]
+            ui = neighborhood[j]
+            if !lg.has_edge(G, ui, vi)::Bool
+                count += 1
+            end
+        end
+    end
+    count
+end
+
+
+
 # **************************************************************************************** #
-#                        Outer constructor for creating line graphs
+#                          Functions for creating various graphs
 # **************************************************************************************** #
 
 """
-    line_graph(G)
+    line_graph(G::LabeledGraph)
 
 Return a LabeledGraph representing the line graph of the 'G'. 
 
-If 'G' is a LabeledGraph then a label for each each vertex of the line graph is created by 
-concatenating the labels of the corresponding vertices in 'G'. Otherwise, labels are 
-created by combining the indices of those vertices in 'G'.
+The label for each each vertex of the line graph is created by concatenating the labels of 
+the corresponding vertices in the LabeledGraph 'G'.
 """
-function line_graph(G::Union{lg.AbstractGraph, LabeledGraph})
+function line_graph(G::LabeledGraph)
+    G_edges = collect(edges(G))
+    vertex_labels = [combine_labels(G.labels[e.src], G.labels[e.dst]) for e in G_edges]
+    line_graph(G.graph; vertex_labels=vertex_labels)
+end
+
+"""
+    line_graph(G::AbstractGraph;
+               vertex_labels::Array{Symbol, 1}=Symbol[])
+
+Return a LabeledGraph representing the line graph of the 'G'. 
+
+The label for each each vertex of the line graph is created by 
+concatenating the labels of the corresponding vertices in 'G'.
+
+The symbols in the array `vertex_labels` are used as labels for the vertices of the returned
+line graph. If `vertex_labels` is empty then labels are created by combining the indices of 
+the corresponding vertices in 'G'.
+"""
+function line_graph(G::lg.AbstractGraph; 
+                    vertex_labels::Array{Symbol, 1}=Symbol[])
     # Create a labeled graph LG whose vertices corresponding to the edges of G.
-    if typeof(G) <: lg.AbstractGraph
-        G_edges = collect(lg.edges(G))
-        edge_labels = [(e.src, e.dst) for e in G_edges]
-    else
-        G_edges = collect(edges(G))
-        edge_labels = [(G.labels[e.src], G.labels[e.dst]) for e in G_edges]
+    G_edges = collect(lg.edges(G))
+    if isempty(vertex_labels)
+        vertex_labels = [combine_labels(e.src, e.dst) for e in G_edges]
     end
-    vertex_labels = [combine_labels(label[1], label[2]) for label in edge_labels]
     LG = LabeledGraph(lg.SimpleGraph(length(G_edges)), vertex_labels)
 
     # Connect any two vertices of LG whose corresponding edges in G share a vertex in G.
@@ -259,9 +420,9 @@ function line_graph(G::Union{lg.AbstractGraph, LabeledGraph})
             end
         end
     end
-
     LG
 end
+
 
 """
     combine_labels(label_A, label_B)
@@ -271,3 +432,57 @@ Concatenate 'label_A' and 'label_B' in lexicographical order.
 function combine_labels(label_A, label_B)
     label_A < label_B ? Symbol(label_A, :_, label_B) : Symbol(label_B, :_, label_A)
 end
+
+
+"""
+    tree_from_tree_decompostion(td::Dict{Symbol, Any})
+
+Returns a LabeledGraph representing the tree described by the tree decomposition in `td`.
+"""
+function tree_from_tree_decompostion(td::Dict{Symbol, Any})
+    tree = LabeledGraph([Symbol("b_$i") for i in 1:td[:num_bags]])
+    for (u, v) in td[:edges]
+        add_edge!(tree, u, v)
+    end
+    tree
+end
+
+
+"""
+    chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
+
+Return a chordal graph built from 'G' using the elimination order 'π̄'.
+
+The returned graph is created from 'G' by iterating over the vertices of 'G', according to 
+the order 'π̄', and for each vertex, connecting all the neighbors that appear later in the 
+order.
+"""
+function chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
+    if !(Set(π̄) == Set(G.labels)) || !(length(π̄) == nv(G))
+        error("π̄ must be an elimination order for G")
+    end
+
+    # Use G as a starting point for H and create dictionary to keep track of which vertices
+    # in the elimination order haven't been considered yet. 
+    H = deepcopy(G)
+    higher_order = Dict{Symbol, Bool}(G.labels .=> true)
+
+    # for each vertex v in the elimination order, connect the neighbors of v that appear
+    # after v in the elimination order.
+    for v in π̄
+        higher_order[v] = false
+        neighbors = all_neighbors(H, v)
+        for i = 1:length(neighbors)-1
+            for j = i+1:length(neighbors)
+                u = H.labels[neighbors[i]]
+                w = H.labels[neighbors[j]]
+                if higher_order[u] && higher_order[w]
+                    add_edge!(H, u, w)
+                end
+            end
+        end
+    end
+    H
+end
+
+chordal_graph(G::LabeledGraph, π̄::Array{<:Integer, 1}) = chordal_graph(G, G.labels[π̄])

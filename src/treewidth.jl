@@ -1,26 +1,339 @@
+using FlowCutterPACE17_jll
+
 import LightGraphs; lg = LightGraphs
 
-export quickbb, graph_to_cnf
-export greedy_treewidth_deletion, find_treewidth_from_order, direct_treewidth_score
-export build_chordal_graph, restricted_mcs
+export flow_cutter
+export min_fill, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
+export greedy_treewidth_deletion, direct_treewidth_score
+export quickbb
+
+
+
+
+# **************************************************************************************** #
+#                                Tree Decompositions
+# **************************************************************************************** #
+
+"""
+    flow_cutter(G::lg.AbstractGraph; time::Integer=10)
+
+Use the flow cutter algorithm to find a tree decomposition for the graph `G` with minimal
+treewidth.
+
+The tree decomposition is returned in a dictionary with the following key value pairs:
+- `:treewidth` => The treewidth of the tree decomposotion,  
+- `:num_bags` => The number of bags in the tree decomposition,
+- `:num_vertices` The number of vertices in `G`,
+- `:b_n` => The n-th bag of the decomposition where n is an integer from 1 to the number of 
+            bags in the decomposition. A bag is an array of vertices of `G`.
+- `:edges` => An array of integer pairs indicating the edges of the tree decomposition.
+
+If a tree decomposition is not found within the allocated time then an empty dictionary is
+returned.
+
+The flow cutter algorithm and how it is used to find tree decompositions is described by
+Michael Hamann and Ben Strasser in the following papers: 
+
+Graph Bisection with Pareto Optimization - https://dl.acm.org/doi/10.1145/3173045
+Computing Tree Decompositions with FlowCutter - https://arxiv.org/abs/1709.08949
+
+# Keywords
+- `time::Integer=10`: The number of seconds to run flow cutter for.
+"""
+function flow_cutter(G::lg.AbstractGraph; time::Integer=10)
+    # Create a temporary directory with the input and output files for flow cutter.
+    out = Pipe()
+    flow_cutter_dir = dirname(FlowCutterPACE17_jll.flow_cutter_pace17_path)
+    mktempdir(flow_cutter_dir) do tdir
+        graph_file = tdir * "/graph.gr"
+        td_file = tdir * "/td.out"
+        graph_to_gr(G, graph_file)
+
+        # Call and run flow cutter for the specified duration of time.
+        flow_cutter_pace17() do exe
+            flow_cutter_cmd = [exe, graph_file]
+            flow_cutter_cmd = Cmd(flow_cutter_cmd)
+            flow_cutter_proc = run(pipeline(flow_cutter_cmd, td_file); wait=false)
+            while !process_running(flow_cutter_proc) # Wait until process has started.
+                sleep(1)
+            end
+            sleep(time)
+            kill(flow_cutter_proc)
+        end
+        flow_cutter_output = readlines(td_file)
+
+        # Read the output of flow cutter into a dictionary to be returned to the user.
+        td = Dict{Symbol, Any}()
+        length(flow_cutter_output) > 0 && (td[:edges] = Tuple{Int, Int}[])
+        for line in flow_cutter_output
+            words = split(line)
+            if words[1] == "c"
+                continue
+            elseif words[1] == "s"
+                td[:num_bags] = parse(Int, words[3])
+                td[:treewidth] = parse(Int, words[4]) - 1
+                td[:num_vertices] = parse(Int, words[4])
+            elseif words[1] == "b"
+                td[Symbol("b_"*words[2])] = parse.(Int, words[3:end])
+            else
+                push!(td[:edges], (parse(Int, words[1]), parse(Int, words[2])))
+            end
+        end
+        return td
+    end
+end
+
+flow_cutter(G::LabeledGraph; kwargs...) = flow_cutter(G.graph; kwargs...)
+
+
+
+# **************************************************************************************** #
+#                               Vertex Elimination Orders
+# **************************************************************************************** #
+
+"""
+    min_fill(G::AbstractGraph)
+
+Returns the upper bound on the tree width of `G` found using the min-fill heuristic. An
+elimination order with the returned treewidth is also returned.
+"""
+function min_fill(G::LabeledGraph)
+    G = deepcopy(G)
+    # Initialise variables to track the maximum degree of a vertex, the elimination order
+    # and how close the neighbourhood of each vertex in G is to being a clique.
+    max_degree = 0; ordering = Symbol[]
+    cliqueness_map = Dict{Int, Int}(v => cliqueness(G,v) for v in vertices(G))
+
+    # While vertices remain in 'G', remove a vertex whose neighbourhood is closest to
+    # forming a clique and append it to the elimination order. Return the maximum degree
+    # found as the upper bound on the tree width of 'G'.
+    while nv(G) > 0
+        v = argmin(cliqueness_map)
+        max_degree = max(max_degree, degree(G, v))
+        append!(ordering, [labels(G)[v]])
+        eliminate!(G, v, cliqueness_map)
+    end
+    max_degree, ordering
+end
+
+
+"""
+    order_from_tree_decomposition(td::Dict{Symbol, Any}; root::Symbol=:b_1)
+
+Return a vertex elimination order with the same treewidth as the given tree decompositon.
+
+The alogithm used to construct the vertex elimination order is described by Shutski et al in
+the following paper https://doi.org/10.1103/PhysRevA.102.062614
+
+# Keywords
+- `root::Symbol=:b_1`: The node of the tree to take as the root. Must be a symbol of the
+                       form `:b_n` where `n` is an integer between 1 and the number of bags
+                       in the tree decomposition.
+"""
+function order_from_tree_decomposition(td::Dict{Symbol, Any}; root::Symbol=:b_1)
+    # Initialise the elimination order and an array containing the names of the bags in the
+    # given tree decomposition. Also, create a labeled graph representing the tree in the
+    # tree decomposition.
+    elimination_order = Int[]
+    B = [Symbol("b_$b") for b in 1:td[:num_bags]]
+    tree = tree_from_tree_decompostion(td)
+    @assert root in B "The root should be one of the bags in the tree decomposition"
+
+    # While the tree has leaf nodes, remove leaves from the tree and append the appropriate
+    # bags of vertices to the elimination order.
+    while nv(tree) > 1
+        # Let 'b' be a leaf node of the tree. If none exist then let it be the root node.
+        b = root
+        for bi in B
+            if (length(all_neighbors(tree, bi)) == 1) && !(bi == root)
+                b = bi
+                break
+            end
+        end
+
+        # Let 'p' be the parent node of 'b' and append to the elimination order the vertices 
+        # that are in the bag associated wit 'b' but not in the bag associated with 'p'.
+        p = labels(tree)[all_neighbors(tree, b)[1]]
+        m = setdiff(td[b], td[p])
+        append!(elimination_order, m)
+
+        # Remove the leaf node from the tree.
+        if !(b == root)
+            setdiff!(B, [b])
+            rem_vertex!(tree, b)
+        end
+    end
+    append!(elimination_order, td[root])
+end
+
+
+"""
+    restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
+
+Return an elimination order for the chordal graph 'H' with the vertices in 'C' appearing at 
+the end.
+
+If the chordal graph `H` was created from an elimination order π for a graph `G`, the 
+returned elimination order for `H` will have a treewidth equal to that of π if `C` is a
+clique in `H`.
+
+The algorithm is described by Shutski et al in https://arxiv.org/abs/1911.12242
+"""
+function restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
+    C = copy(C)
+    cardinality = Dict{Symbol, Int}(H.labels .=> 0)
+    is_not_in_π̄ = Dict{Symbol, Bool}(H.labels .=> true)
+    π̄ = Array{Symbol, 1}(undef, nv(H))
+
+    # Create the elimination order starting at the end and working back to the beginning.
+    for i = length(π̄):-1:1
+        # Select a vertex to appear next in the elimination order.
+        if length(C) > 0
+            v = pop!(C)
+        else
+            v = argmax(cardinality)
+        end
+
+        # Add the vertex to the elimination order, and remove it from the cardinality map.
+        delete!(cardinality, v)
+        π̄[i] = v
+        is_not_in_π̄[v] = false
+
+        # Update the cardinality of the remaining vertices.
+        for w_ind in all_neighbors(H, v)
+            w = H.labels[w_ind]
+            if is_not_in_π̄[w]
+                cardinality[w] += 1
+            end
+        end
+    end
+    π̄
+end
+
+
+"""
+    find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
+
+Return the treewidth of `G` with respect to the elimination order `π̄`.
+"""
+function find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
+    G = deepcopy(G)
+    τ = 0
+    for v_label in π̄
+        v = get_vertex(G, v_label)
+        τ = max(τ, degree(G, v))
+        eliminate!(G, v)
+    end
+    τ
+end
+
+find_treewidth_from_order(G::LabeledGraph, π̄::Array{<:Integer, 1}) = begin
+    π̄ = [G.labels[i] for i in π̄]
+    find_treewidth_from_order(G, π̄)
+end
+
+
+
+# **************************************************************************************** #
+#                      Schutski's greedy method for automatic slicing
+# **************************************************************************************** #
+
+"""
+    greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
+                              score_function::Symbol=:degree, 
+                              π::Array{Symbol, 1}=[])
+
+Greedily remove vertices from G with respect to minimising the chosen score function.
+Return the reduced graph and an array of vertices which were removed.
+
+The intermediate elimination orders and corresponding treewidths of the intermediate graphs
+are also returned if an elimination order for G is provided.
+
+The algorithm is described by Schutski et al in Phys. Rev. A 102, 062614.
+
+# Keywords
+- `score_function::Symbol=:degree`: function to maximise when selecting vertices to remove.
+                                    (:degree, :direct_treewidth)
+- `elim_order:Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
+                                          direct_treewidth score function.
+"""
+function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
+                                   score_function::Symbol=:degree, 
+                                   elim_order::Array{Symbol, 1}=Symbol[])
+    # Check if keyword arguments are suitable.
+    if !(score_function in keys(SCORES)) 
+        scores = collect(keys(SCORES))
+        error("The keyword argument score_function must be one of the following: $scores")
+    end
+
+    if score_function == :direct_treewidth
+        if !(length(elim_order) == nv(G))
+            error("The direct treewidth score requires an elimination order.")
+        end
+    end
+
+    μ = []; f = SCORES[score_function]
+    G̃ = deepcopy(G); π̃ = copy(elim_order)
+    π̄s = Array{Array{Symbol, 1}, 1}(undef, m)
+    τs = Array{Int, 1}(undef, m)
+
+    # Remove m vertices from G̃ which maximise the chosen score function.
+    for j = 1:m
+        u = argmax(f(G̃, π̃))
+        u_label = G̃.labels[u]
+        rem_vertex!(G̃, u)
+        append!(μ, [u_label])
+
+        # Record the modified elimination ordering for the new graph.
+        # TODO: add an option to recalculate an elimination ordering for G
+        π̃ = setdiff(π̃, [u_label]); π̄s[j] = π̃
+        if length(π̃) == nv(G̃)
+            τs[j] = find_treewidth_from_order(G̃, π̃)
+        end
+    end
+
+    # If an elimination order was provided, return the modified elimination orders for the 
+    # intermediate graphs G̃ and the corresponding treewidths with respect to the modified 
+    # elimination orders.
+    if length(π̃) == nv(G̃)
+        return G̃, μ, π̄s, τs
+    else
+        return G̃, μ
+    end
+end
+
+
+"""
+    direct_treewidth_score(G::LabeledGraph, π::Array{Symbol, 1})
+
+Return an array of integers, one for each vertex in G, indicating the change in treewidth of
+G, with respect to π, if that vertex is removed.
+"""
+function direct_treewidth_score(G::LabeledGraph, π̄::Array{Symbol, 1})
+    τ = find_treewidth_from_order(G, π̄)
+    Δ = Array{Int, 1}(undef, nv(G))
+
+    for u in vertices(G)
+        G̃ = deepcopy(G)
+        rem_vertex!(G̃, u)
+        π̃ = setdiff(π̄, [G.labels[u]])
+
+        Δ[u] = τ - find_treewidth_from_order(G̃, π̃)
+    end
+    Δ
+end
+
+
+# A dictionary of score functions for the greedy_treewidth_deletion algorithm.
+SCORES = Dict()
+SCORES[:degree] = (G, π) -> degree(G)
+SCORES[:direct_treewidth] = direct_treewidth_score
+
+
 
 # *************************************************************************************** #
 #                       Functions to use Gogate's QuickBB binary
 # *************************************************************************************** #
-
-"""
-    graph_to_cnf(G::lg.AbstractGraph, filename::String)
-
-Write the provided graph to a cnf file for Gogate's QuickBB binary.
-"""
-function graph_to_cnf(G::lg.AbstractGraph, filename::String)
-    open(filename, "w") do io
-        write(io, "p cnf $(lg.nv(G)) $(lg.ne(G))\n")
-        for e in lg.edges(G)
-            write(io, "$(e.src) $(e.dst) 0\n")
-        end
-    end
-end
 
 """
     quickbb(G::lg.AbstractGraph; 
@@ -154,196 +467,4 @@ function quickbb(G::LabeledGraph;
 
     # Convert the perfect elimination order to an array of vertex labels before returning
     [G.labels[v] for v in peo], metadata
-end
-
-
-# **************************************************************************************** #
-#                      Schutski's greedy method for automatic slicing
-# **************************************************************************************** #
-
-"""
-    greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
-                              score_function::Symbol=:degree, 
-                              π::Array{Symbol, 1}=[])
-
-Greedily remove vertices from G with respect to minimising the chosen score function.
-Return the reduced graph and an array of vertices which were removed.
-
-The intermediate elimination orders and corresponding treewidths of the intermediate graphs
-are also returned if an elimination order for G is provided.
-
-The algorithm is described by Schutski et al in Phys. Rev. A 102, 062614.
-
-# Keywords
-- `score_function::Symbol=:degree`: function to maximise when selecting vertices to remove.
-                                    (:degree, :direct_treewidth)
-- `elim_order:Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
-                                          direct_treewidth score function.
-"""
-function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
-                                   score_function::Symbol=:degree, 
-                                   elim_order::Array{Symbol, 1}=Symbol[])
-    # Check if keyword arguments are suitable.
-    if !(score_function in keys(SCORES)) 
-        scores = collect(keys(SCORES))
-        error("The keyword argument score_function must be one of the following: $scores")
-    end
-
-    if score_function == :direct_treewidth
-        if !(length(elim_order) == nv(G))
-            error("The direct treewidth score requires an elimination order.")
-        end
-    end
-
-    μ = []; f = SCORES[score_function]
-    G̃ = deepcopy(G); π̃ = copy(elim_order)
-    π̄s = Array{Array{Symbol, 1}, 1}(undef, m)
-    τs = Array{Int, 1}(undef, m)
-
-    # Remove m vertices from G̃ which maximise the chosen score function.
-    for j = 1:m
-        u = argmax(f(G̃, π̃))
-        u_label = G̃.labels[u]
-        rem_vertex!(G̃, u)
-        append!(μ, [u_label])
-
-        # Record the modified elimination ordering for the new graph.
-        # TODO: add an option to recalculate an elimination ordering for G
-        π̃ = setdiff(π̃, [u_label]); π̄s[j] = π̃
-        if length(π̃) == nv(G̃)
-            τs[j] = find_treewidth_from_order(G̃, π̃)
-        end
-    end
-
-    # If an elimination order was provided, return the modified elimination orders for the 
-    # intermediate graphs G̃ and the corresponding treewidths with respect to the modified 
-    # elimination orders.
-    if length(π̃) == nv(G̃)
-        return G̃, μ, π̄s, τs
-    else
-        return G̃, μ
-    end
-end
-
-"""
-    direct_treewidth_score(G::LabeledGraph, π::Array{Symbol, 1})
-
-Return an array of integers, one for each vertex in G, indicating the change in treewidth of
-G, with respect to π, if that vertex is removed.
-"""
-function direct_treewidth_score(G::LabeledGraph, π̄::Array{Symbol, 1})
-    τ = find_treewidth_from_order(G, π̄)
-    Δ = Array{Int, 1}(undef, nv(G))
-
-    for u in vertices(G)
-        G̃ = deepcopy(G)
-        rem_vertex!(G̃, u)
-        π̃ = setdiff(π̄, [G.labels[u]])
-
-        Δ[u] = τ - find_treewidth_from_order(G̃, π̃)
-    end
-
-    Δ
-end
-
-"""
-    find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
-
-Return the treewidth of G with respect to the elimination order π̄.
-"""
-function find_treewidth_from_order(G::LabeledGraph, π̄::Array{Symbol, 1})
-    G = deepcopy(G)
-    τ = 1
-    for v_label in π̄
-        v = get_vertex(G, v_label)
-        τ = max(τ, degree(G, v))
-        eliminate!(G, v)
-    end
-    τ
-end
-
-# A dictionary of score functions for the greedy_treewidth_deletion algorithm.
-SCORES = Dict()
-SCORES[:degree] = (G, π) -> degree(G)
-SCORES[:direct_treewidth] = direct_treewidth_score
-
-
-# **************************************************************************************** #
-#                     Functions for Schutski's partial contraction method
-# **************************************************************************************** #
-
-"""
-    build_chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
-
-Return a chordal graph built from 'G' using the elimination order 'π̄'.
-
-The returned graph is created from 'G' by iterating over the vertices of 'G', according to 
-the order 'π̄', and for each vertex, connecting all the neighbors that appear later in the 
-order.
-"""
-function build_chordal_graph(G::LabeledGraph, π̄::Array{Symbol, 1})
-    if !(Set(π̄) == Set(G.labels)) || !(length(π̄) == nv(G))
-        error("π̄ must be an elimination order for G")
-    end
-
-    # Use G as a starting point for H and create dictionary to keep track of which vertices
-    # in the elimination order haven't been considered yet. 
-    H = deepcopy(G)
-    higher_order = Dict{Symbol, Bool}(G.labels .=> true)
-
-    # for each vertex v in the elimination order, connect the neighbors of v that appear
-    # after v in the elimination order.
-    for v in π̄
-        higher_order[v] = false
-        neighbors = all_neighbors(H, v)
-        for i = 1:length(neighbors)-1
-            for j = i:length(neighbors)
-                u = H.labels[neighbors[i]]
-                w = H.labels[neighbors[j]]
-                if higher_order[u] && higher_order[w]
-                    add_edge!(H, u, w)
-                end
-            end
-        end
-    end
-    H
-end
-
-
-"""
-    restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
-
-Return an elimination order for 'H' with the vertices in 'C' appearing at the end.
-
-The algorithm is described by Shutski et al in https://arxiv.org/abs/1911.12242
-"""
-function restricted_mcs(H::LabeledGraph, C::Array{Symbol, 1})
-    C = copy(C)
-    cardinality = Dict{Symbol, Int}(H.labels .=> 0)
-    is_not_in_π̄ = Dict{Symbol, Bool}(H.labels .=> true)
-    π̄ = Array{Symbol, 1}(undef, nv(H))
-
-    # Create the elimination order starting at the end and working back to the beginning.
-    for i = length(π̄):-1:1
-        # Select a vertex to appear next in the elimination order.
-        if length(C) > 0
-            v = pop!(C)
-        else
-            v = argmax(cardinality)
-        end
-
-        # Add the vertex to the elimination order, and remove it from the cardinality map.
-        delete!(cardinality, v)
-        π̄[i] = v
-        is_not_in_π̄[v] = false
-
-        # Update the cardinality of the remaining vertices.
-        for w_ind in all_neighbors(H, v)
-            w = H.labels[w_ind]
-            if is_not_in_π̄[w]
-                cardinality[w] += 1
-            end
-        end
-    end
-    π̄
 end
