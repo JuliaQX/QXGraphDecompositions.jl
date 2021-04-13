@@ -10,7 +10,7 @@
 
     # Check if the treewidth and number of bags is correct and check that the tree 
     # decomposition has no edges.
-    tree_decomp = flow_cutter(G; time=20)
+    tree_decomp = flow_cutter(G, 30; seed=42)
     @test tree_decomp[:treewidth] == 9
     @test tree_decomp[:num_bags] == 1
     @test length(tree_decomp[:edges]) == 0
@@ -32,12 +32,9 @@
     end
 
     # Check if the treewidth, number of bags and number of edges is correct.
-    tree_decomp = flow_cutter(G; time=20)
+    tree_decomp = flow_cutter(G, 30)
     @test tree_decomp[:treewidth] == N-1
     @test tree_decomp[:num_bags] == 2
+    @test tree_decomp[:num_vertices] == N + n
     @test length(tree_decomp[:edges]) == 1
-
-    # Check that an empty dictionary is returned if no tree decomposition is found.
-    tree_decomp = flow_cutter(G; time=0)
-    @test isempty(tree_decomp)
 end
