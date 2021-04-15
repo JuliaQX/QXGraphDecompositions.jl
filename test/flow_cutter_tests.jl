@@ -32,7 +32,7 @@
     end
 
     # Check if the treewidth, number of bags and number of edges is correct.
-    tree_decomp = flow_cutter(G, 30)
+    tree_decomp = flow_cutter(G, 30; seed=42)
     @test tree_decomp[:treewidth] == N-1
     @test tree_decomp[:num_bags] == 2
     @test tree_decomp[:num_vertices] == N + n
