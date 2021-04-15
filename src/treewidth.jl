@@ -79,7 +79,7 @@ function flow_cutter(G::lg.AbstractGraph, time::Integer=10; seed::Integer=-1)
                 td[:num_vertices] = parse(Int, words[5])
             elseif words[1] == "b"
                 td[Symbol("b_"*words[2])] = parse.(Int, words[3:end])
-            else
+            elseif length(words) == 2
                 push!(td[:edges], (parse(Int, words[1]), parse(Int, words[2])))
             end
         end
