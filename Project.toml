@@ -1,7 +1,7 @@
 name = "QXGraphDecompositions"
 uuid = "b15f1ded-d19a-4aca-a940-1991fcfc7750"
 authors = ["QuantEx team"]
-version = "0.1.5"
+version = "0.1.6"
 
 [deps]
 FlowCutterPACE17_jll = "008204e2-cd5c-5c6d-9360-d31f32b5f6c2"
