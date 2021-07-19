@@ -30,4 +30,7 @@
     @test nv(Ḡ) == 15
     @test length(μ) == 5
     @test length(π̃s[end]) == nv(Ḡ)
+
+
+    
 end

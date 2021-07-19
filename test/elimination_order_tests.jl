@@ -35,6 +35,11 @@
     # Test finding the treewidth of an elimination order.
     @test find_treewidth_from_order(G, min_fill_order) == N-1
 
+    # Test constructing a teee decomposition from an elimination order
+    B, T = build_clique_tree(G, min_fill_order)
+    @test length(B) == lg.nv(T)
+    @test treewidth_upperbound == maximum(length.(B)) - 1
+
     # Turn the first 4 vertices og the graph into a clique for test restricted mcs.
     n = 4
     for i = 1:n-1, j = i+1:n

@@ -1,10 +1,10 @@
 using FlowCutterPACE17_jll
 
-import LightGraphs; lg = LightGraphs
+import LightGraphs as lg
 
 export flow_cutter
 export min_fill, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
-export greedy_treewidth_deletion, direct_treewidth_score
+export greedy_treewidth_deletion, direct_treewidth_score, build_clique_tree
 export quickbb
 
 
@@ -471,4 +471,67 @@ function quickbb(G::LabeledGraph;
 
     # Convert the perfect elimination order to an array of vertex labels before returning
     [G.labels[v] for v in peo], metadata
+end
+
+
+# *************************************************************************************** #
+#                             Functions for Tree Trimming
+# *************************************************************************************** #
+
+"""Returns a tree decomposition for the graph `G` built from the given vertex elimination order `π`"""
+function build_clique_tree(G, π̃)
+    G = deepcopy(G)
+    B = [] # bags
+    T = lg.SimpleGraph() # tree
+
+    orphan_bags = [] # Array to hold parentless vertices of T
+    for i = 1:length(π̃)
+        u = π̃[i]
+
+        # Eliminate u from G: form a clique and remove u,
+        # Take the clique formed by eliminating u as the next possible bag
+        Nᵤ = [G.labels[v] for v in all_neighbors(G, u)]
+        b = [u]; ib = length(B) + 1
+        if !isempty(Nᵤ) b = [Nᵤ; u] end
+        eliminate!(G, u)
+
+        drop_bag = false
+        # keep only maximal cliques
+        for i in orphan_bags
+            l = B[i]
+            b∩l = intersect(b, l)
+            if issubset(b, b∩l) # Set(b) == Set(intersect(b, l))
+                b = l
+                ib = i
+                drop_bag = true
+                break
+            end
+        end
+
+        # add a new vetex to the tree for the next bag
+        # and append it to the parentless vertices.
+        if !drop_bag
+            append!(B, [b])
+            lg.add_vertex!(T)
+            append!(orphan_bags, [ib])
+        end
+
+        # Check if the new bag is a parent of any of the
+        # orphan vertices and update the list of orphans.
+        for i in orphan_bags
+            l = B[i]
+            b∩l = intersect(b, l)
+            if u in b∩l && !issubset(b, b∩l)
+                orphan_bags = setdiff(orphan_bags, [i])
+                # append!(B, [b])
+                # add_vertex!(T)
+                lg.add_edge!(T, i, ib)
+            end
+        end
+    end
+    B, T
+end
+
+function get_weighted_subtree(B, T, u)
+    [b for b in B if u in b]
 end
