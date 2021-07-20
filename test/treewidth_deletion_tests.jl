@@ -17,7 +17,7 @@
     π̄, md = quickbb(G); tw = md[:treewidth]
 
     # check if the treewidth is reduced by the correct amount and number of vertices removed
-    # is correct. 
+    # is correct.
     Ḡ, μ = greedy_treewidth_deletion(G, 5)
     peo, modified_md = quickbb(Ḡ)
     @test modified_md[:treewidth] == tw - 5
@@ -31,6 +31,10 @@
     @test length(μ) == 5
     @test length(π̃s[end]) == nv(Ḡ)
 
-
-    
+    # Test the tree trimming method for selecting vertices to delete.
+    Ḡ, μ, π̃s, τs = greedy_treewidth_deletion(G, 5; score_function=:tree_trimming, elim_order=π̄)
+    @test τs == [tw-1, tw-2, tw-3, tw-4, tw-5]
+    @test nv(Ḡ) == 15
+    @test length(μ) == 5
+    @test length(π̃s[end]) == nv(Ḡ)
 end

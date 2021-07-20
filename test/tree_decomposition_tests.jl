@@ -1,4 +1,4 @@
-@testset "Flow Cutter tests" begin
+@testset "Tree decomposition tests" begin
     # A simple graph to test flow cutter on.
     N = 10
     G = lg.SimpleGraph(N)
@@ -37,4 +37,20 @@
     @test tree_decomp[:num_bags] == 2
     @test tree_decomp[:num_vertices] == N + n
     @test length(tree_decomp[:edges]) == 1
+
+    # Test constructing a tree decomposition from an elimination order
+    # A square lattice graph to test the min fill heuristic and conversion of a tree 
+    # decomposition to an elimination order.
+    N = 5
+    G = LabeledGraph(N*N)
+    for i = 1:N-1
+        for j = 1:N
+            add_edge!(G, i + N*(j-1), i + N*(j-1) + 1)
+            add_edge!(G, i + N*(j-1), i + N*(j-1) + N)
+        end
+    end
+    treewidth_upperbound, min_fill_order = min_fill(G)
+    B, T = build_clique_tree(G, min_fill_order)
+    @test length(B) == lg.nv(T)
+    @test treewidth_upperbound == maximum(length.(B)) - 1
 end

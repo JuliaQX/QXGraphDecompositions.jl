@@ -20,7 +20,7 @@
     N = 5
     G = LabeledGraph(N*N)
     for i = 1:N-1
-        for j = 1:N-1
+        for j = 1:N
             add_edge!(G, i + N*(j-1), i + N*(j-1) + 1)
             add_edge!(G, i + N*(j-1), i + N*(j-1) + N)
         end
@@ -34,11 +34,6 @@
 
     # Test finding the treewidth of an elimination order.
     @test find_treewidth_from_order(G, min_fill_order) == N-1
-
-    # Test constructing a teee decomposition from an elimination order
-    B, T = build_clique_tree(G, min_fill_order)
-    @test length(B) == lg.nv(T)
-    @test treewidth_upperbound == maximum(length.(B)) - 1
 
     # Turn the first 4 vertices og the graph into a clique for test restricted mcs.
     n = 4

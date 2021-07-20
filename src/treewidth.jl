@@ -90,6 +90,68 @@ end
 flow_cutter(G::LabeledGraph, time::Integer=10; kwargs...) = flow_cutter(G.graph, time; kwargs...)
 
 
+"""
+    build_clique_tree(G, π̃)
+
+Returns a tree decomposition for the graph `G` built from the given vertex 
+elimination order `π`.
+
+The algorithm used is by Schutski et al in Phys. Rev. A 102, 062614.
+"""
+function build_clique_tree(G, π̃)
+    G = deepcopy(G)
+    B = [] # bags
+    T = lg.SimpleGraph() # tree
+
+    orphan_bags = [] # Array to hold parentless vertices of T
+    for i = 1:length(π̃)
+        u = π̃[i]
+
+        # Eliminate u from G: form a clique and remove u,
+        # Take the clique formed by eliminating u as the next possible bag
+        Nᵤ = [G.labels[v] for v in all_neighbors(G, u)]
+        b = [u]; ib = length(B) + 1
+        if !isempty(Nᵤ) b = [Nᵤ; u] end
+        eliminate!(G, u)
+
+        drop_bag = false
+        # keep only maximal cliques
+        for i in orphan_bags
+            l = B[i]
+            b∩l = intersect(b, l)
+            if issubset(b, b∩l) # Set(b) == Set(intersect(b, l))
+                b = l
+                ib = i
+                drop_bag = true
+                break
+            end
+        end
+
+        # add a new vetex to the tree for the next bag
+        # and append it to the parentless vertices.
+        if !drop_bag
+            append!(B, [b])
+            lg.add_vertex!(T)
+            append!(orphan_bags, [ib])
+        end
+
+        # Check if the new bag is a parent of any of the
+        # orphan vertices and update the list of orphans.
+        for i in orphan_bags
+            l = B[i]
+            b∩l = intersect(b, l)
+            if u in b∩l && !issubset(b, b∩l)
+                orphan_bags = setdiff(orphan_bags, [i])
+                # append!(B, [b])
+                # add_vertex!(T)
+                lg.add_edge!(T, i, ib)
+            end
+        end
+    end
+    B, T
+end
+
+
 
 # **************************************************************************************** #
 #                               Vertex Elimination Orders
@@ -258,8 +320,8 @@ The algorithm is described by Schutski et al in Phys. Rev. A 102, 062614.
 # Keywords
 - `score_function::Symbol=:degree`: function to maximise when selecting vertices to remove.
                                     (:degree, :direct_treewidth)
-- `elim_order:Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
-                                          direct_treewidth score function.
+- `elim_order::Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
+                                           direct_treewidth score function.
 """
 function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
                                    score_function::Symbol=:degree, 
@@ -270,9 +332,9 @@ function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
         error("The keyword argument score_function must be one of the following: $scores")
     end
 
-    if score_function == :direct_treewidth
+    if score_function in [:direct_treewidth, :tree_trimming]
         if !(length(elim_order) == nv(G))
-            error("The direct treewidth score requires an elimination order.")
+            error("The chosen score function requires an elimination order.")
         end
     end
 
@@ -283,7 +345,7 @@ function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
 
     # Remove m vertices from G̃ which maximise the chosen score function.
     for j = 1:m
-        u = argmax(f(G̃, π̃))
+        u = f(G̃, π̃)
         u_label = G̃.labels[u]
         rem_vertex!(G̃, u)
         append!(μ, [u_label])
@@ -327,11 +389,51 @@ function direct_treewidth_score(G::LabeledGraph, π̄::Array{Symbol, 1})
     Δ
 end
 
+"""
+    tree_trimming(G, π̃)
+
+Returns a vertex of `G` which can be removed to reduce its treewidth. The selected
+vertex is chosen based on a tree decompostion built from the vertex elimination
+order `π̃`.
+
+Implements the tree trimming algorithm described by Schutski et al 
+in Phys. Rev. A 102, 062614.
+"""
+function tree_trimming(G, π̃)
+    # Get a tree decomposition for G base on π̃.
+    B, T = build_clique_tree(G, π̃)
+
+    # Find the largest bag in B. If multiple maximal bags
+    # are found, consider their union.
+    largest_bag_size = maximum(length.(B))
+    bₘ = [b for b in B if length(b) == largest_bag_size]
+    bₘ = reduce(union, bₘ)
+
+    # For each node in bₘ find its weighted subtree Sᵤ.
+    S = []
+    weights = []
+    for u in bₘ
+        Sᵤ = [b for b in B if u in b]
+        total_weightᵤ = sum([length(b) for b in Sᵤ])
+        append!(S, [Sᵤ])
+        append!(weights, [total_weightᵤ])
+    end
+
+    # Select the Sᵤ with largest length, or largest weight in case of
+    # equal length. Return the corresponding vertex u.
+    largest_length = maximum(length.(S))
+    largest_S = [i for (i, s) in enumerate(S) if length(s) == largest_length]
+    i = argmax(weights[largest_S])
+    u = bₘ[largest_S[i]]
+    get_vertex(G, u)
+end
+
 
 # A dictionary of score functions for the greedy_treewidth_deletion algorithm.
 SCORES = Dict()
-SCORES[:degree] = (G, π) -> degree(G)
-SCORES[:direct_treewidth] = direct_treewidth_score
+SCORES[:degree] = (G, π) -> argmax(degree(G))
+SCORES[:direct_treewidth] = (G, π) -> argmax(direct_treewidth_score(G, π))
+SCORES[:tree_trimming] = tree_trimming
 
 
 
@@ -471,67 +573,4 @@ function quickbb(G::LabeledGraph;
 
     # Convert the perfect elimination order to an array of vertex labels before returning
     [G.labels[v] for v in peo], metadata
-end
-
-
-# *************************************************************************************** #
-#                             Functions for Tree Trimming
-# *************************************************************************************** #
-
-"""Returns a tree decomposition for the graph `G` built from the given vertex elimination order `π`"""
-function build_clique_tree(G, π̃)
-    G = deepcopy(G)
-    B = [] # bags
-    T = lg.SimpleGraph() # tree
-
-    orphan_bags = [] # Array to hold parentless vertices of T
-    for i = 1:length(π̃)
-        u = π̃[i]
-
-        # Eliminate u from G: form a clique and remove u,
-        # Take the clique formed by eliminating u as the next possible bag
-        Nᵤ = [G.labels[v] for v in all_neighbors(G, u)]
-        b = [u]; ib = length(B) + 1
-        if !isempty(Nᵤ) b = [Nᵤ; u] end
-        eliminate!(G, u)
-
-        drop_bag = false
-        # keep only maximal cliques
-        for i in orphan_bags
-            l = B[i]
-            b∩l = intersect(b, l)
-            if issubset(b, b∩l) # Set(b) == Set(intersect(b, l))
-                b = l
-                ib = i
-                drop_bag = true
-                break
-            end
-        end
-
-        # add a new vetex to the tree for the next bag
-        # and append it to the parentless vertices.
-        if !drop_bag
-            append!(B, [b])
-            lg.add_vertex!(T)
-            append!(orphan_bags, [ib])
-        end
-
-        # Check if the new bag is a parent of any of the
-        # orphan vertices and update the list of orphans.
-        for i in orphan_bags
-            l = B[i]
-            b∩l = intersect(b, l)
-            if u in b∩l && !issubset(b, b∩l)
-                orphan_bags = setdiff(orphan_bags, [i])
-                # append!(B, [b])
-                # add_vertex!(T)
-                lg.add_edge!(T, i, ib)
-            end
-        end
-    end
-    B, T
-end
-
-function get_weighted_subtree(B, T, u)
-    [b for b in B if u in b]
 end
