@@ -1,6 +1,6 @@
 using FlowCutterPACE17_jll
 
-import LightGraphs as lg
+import LightGraphs; lg = LightGraphs
 
 export flow_cutter
 export min_fill, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
