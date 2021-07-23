@@ -62,6 +62,26 @@ function graph_to_gr(G::lg.AbstractGraph, filename::String)
     end
 end
 
+"""
+    graph_from_gr(filename::String)
+
+Read a graph from the provided gr file.
+"""
+function graph_from_gr(filename::String)
+    lines = readlines(filename)
+
+    # Create a Graph with the correct number of vertices.
+    num_vertices, num_edges = parse.(Int, split(lines[1], ' ')[3:end])
+    G = lg.SimpleGraph(num_vertices)
+
+    # Add an edge to the graph for every other line in the file.
+    for line in lines[2:end]
+        src, dst = parse.(Int, split(line, ' '))
+        lg.add_edge!(G, src, dst)
+    end
+    LabeledGraph(G)
+end
+
 
 """
     graph_to_cnf(G::LabeledGraph, filename::String)
@@ -77,6 +97,26 @@ function graph_to_cnf(G::lg.AbstractGraph, filename::String)
             write(io, "$(e.src) $(e.dst) 0\n")
         end
     end
+end
+
+"""
+    graph_from_cnf(filename::String)
+
+Read a graph from the provided cnf file.
+"""
+function graph_from_cnf(filename::String)
+    lines = readlines(filename)
+
+    # Create a Graph with the correct number of vertices.
+    num_vertices, num_edges = parse.(Int, split(lines[1], ' ')[3:end])
+    G = lg.SimpleGraph(num_vertices)
+
+    # Add an edge to the graph for every other line in the file.
+    for line in lines[2:end]
+        src, dst = parse.(Int, split(line, ' ')[1:2])
+        lg.add_edge!(G, src, dst)
+    end
+    LabeledGraph(G)
 end
 
 

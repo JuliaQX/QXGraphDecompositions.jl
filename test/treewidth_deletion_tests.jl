@@ -1,5 +1,5 @@
 @testset "Treewidth deletion tests" begin
-    # A simple graph to test quickbb on.
+    # A simple graph to test on.
     N = 10
     G = lg.SimpleGraph(N)
     for i = 1:N
@@ -14,13 +14,13 @@
     end
 
     G = LabeledGraph(G)
-    π̄, md = quickbb(G); tw = md[:treewidth]
+    tw, π̄ = min_fill(G)
 
     # check if the treewidth is reduced by the correct amount and number of vertices removed
     # is correct.
     Ḡ, μ = greedy_treewidth_deletion(G, 5)
-    peo, modified_md = quickbb(Ḡ)
-    @test modified_md[:treewidth] == tw - 5
+    modified_tw, modifued_π̄ = min_fill(Ḡ)
+    @test modified_tw == tw - 5
     @test nv(Ḡ) == 15
     @test length(μ) == 5
 

@@ -5,7 +5,6 @@ import LightGraphs; lg = LightGraphs
 export flow_cutter
 export min_fill, order_from_tree_decomposition, restricted_mcs, find_treewidth_from_order
 export greedy_treewidth_deletion, direct_treewidth_score, build_clique_tree
-export quickbb
 
 
 
@@ -188,7 +187,7 @@ end
 
 Return a vertex elimination order with the same treewidth as the given tree decompositon.
 
-The alogithm used to construct the vertex elimination order is described by Shutski et al in
+The algorithm used to construct the vertex elimination order is described by Shutski et al in
 the following paper https://doi.org/10.1103/PhysRevA.102.062614
 
 # Keywords
@@ -307,7 +306,7 @@ end
 """
     greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
                               score_function::Symbol=:degree, 
-                              π::Array{Symbol, 1}=[])
+                              elim_order::Array{Symbol, 1}=[])
 
 Greedily remove vertices from G with respect to minimising the chosen score function.
 Return the reduced graph and an array of vertices which were removed.
@@ -319,12 +318,12 @@ The algorithm is described by Schutski et al in Phys. Rev. A 102, 062614.
 
 # Keywords
 - `score_function::Symbol=:degree`: function to maximise when selecting vertices to remove.
-                                    (:degree, :direct_treewidth)
+                                    (:degree, :direct_treewidth, :tree_trimming)
 - `elim_order::Array{Symbol, 1}=Symbol[]`: The elimination order for G to be used by 
                                            direct_treewidth score function.
 """
 function greedy_treewidth_deletion(G::LabeledGraph, m::Int=4;
-                                   score_function::Symbol=:degree, 
+                                   score_function::Symbol=:tree_trimming, 
                                    elim_order::Array{Symbol, 1}=Symbol[])
     # Check if keyword arguments are suitable.
     if !(score_function in keys(SCORES)) 
