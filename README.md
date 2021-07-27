@@ -48,7 +48,7 @@ for i = 1:N, j = i+1:N
 end
 
 # To get an elimination order for G with minimal treewidth we can use the min fill heuristic.
-# tw, elimination_order = min_fill(G);
+tw, elimination_order = min_fill(G);
 @show elimination_order
 
 # The treewidth of the elimination order is:
