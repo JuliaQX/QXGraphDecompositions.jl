@@ -7,9 +7,9 @@ plan for a network can be mapped to a [tree decomposition](https://en.wikipedia.
 of the network's line graph. The computational cost of the contraction plan is then
 exponential in the treewidth of that tree decomposition.
 
-In this context, the treewidth of a tree decomposition, for a networks line graph, serves as 
+In this context, the treewidth of a tree decomposition of a networks line graph serves as 
 an indirect measure of the size of the largest intermediate tensor produced while 
-contracting a network according to a contraction plan that maps to the tree decompositon. As 
+contracting the network according to the contraction plan that maps to the tree decompositon. As 
 the cost of contracting a network is dominated by contractions involing the largest 
 intermediate tensor, it is thus also an indirect measure of the computational cost of the 
 contraction plan used.
@@ -32,6 +32,14 @@ graph.
 flow_cutter
 ```
 
+A vertex elimination order for a graph can be converted into a tree decomposition for the graph 
+known as a clique tree. The following function implements the method outlined by Shutski et al 
+[here](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.102.062614).
+
+```@docs
+build_clique_tree
+```
+
 
 ## Vertex Elimination Orders
 
@@ -42,17 +50,6 @@ the graph. Vertex elimination orders can be mapped to tree decompositions and ha
 equivalent notion of treewidth. The treewidth of a graph, with respect to a vertex 
 elimination order, is the maximum number of neighbours a vertex has in the graph when it is 
 eliminated according the order.
-
-A standard algorithm for finding elimination orders, whose treewidth provides a good upper
-bound for the minimal treewidth of a graph, is known as the QuickBB algorithm.
-It was first proposed by Vibhav Gogate and Rina Dechter in their 2004 paper "A complete 
-Anytime Algorithm for Treewidth". The paper along with a binary implementation of the 
-algorithm is provided [here](http://www.hlt.utdallas.edu/~vgogate/quickbb.html). 
-QXGraphDecompositions provides a julia wrapper for their binary which requires a linux OS.
-
-```@docs
-quickbb
-```
 
 The min-fill heuristic is a popular heuristic for computing an upper bound on treewidth of
 a graph and an elimination order with the returned treewidth.

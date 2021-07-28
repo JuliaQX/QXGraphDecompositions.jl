@@ -10,7 +10,8 @@
 
 QXGraphDecompositions is a Julia package for analysing and manipulating graph structures describing tensor 
 networks in the QuantEx project. It provides functions for solving graph theoretic problems 
-related to the task of efficiently slicing and contracting a tensor network.
+related to the task of efficiently slicing and contracting a tensor network. Documentation can be found
+[here](https://juliaqx.github.io/QXGraphDecompositions.jl/dev/).
 
 QXGraphDecompositions was developed as part of the QuantEx project, one of the individual software 
 projects of WP8 of [PRACE](https://prace-ri.eu/) 6IP.
@@ -46,12 +47,12 @@ for i = 1:N, j = i+1:N
     add_edge!(G, i, j)
 end
 
-# To get an elimination order for G with minimal treewidth we call quickbb.
-elimination_order, md = quickbb(G)
+# To get an elimination order for G with minimal treewidth we can use the min fill heuristic.
+tw, elimination_order = min_fill(G);
 @show elimination_order
 
-# The treewidth of the elimination order is contained in the metadata dictionary returned by quickbb.
-@show md[:treewidth]
+# The treewidth of the elimination order is:
+@show tw
 ```
 
 # Contributing

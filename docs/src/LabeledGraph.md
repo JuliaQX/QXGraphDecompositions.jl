@@ -2,13 +2,13 @@
 
 QXGraphDecompositions uses the `SimpleGraph` struct from the LightGraphs package to store 
 graph structures. However, some of the algorithms implemented in QXGraphDecompositions 
-repeatedly modify the graph they work on, either by removing or adding vertices in varying 
-orders, and in turn alter the manner in which vertices in the graph are indexed. This can 
+repeatedly modify the graphs they work on, either by removing or adding vertices in varying 
+orders, and in turn alter the manner in which vertices of the graph are indexed. This can 
 make it difficult to track where vertices end up in a graph after many modifications are 
 made, which needs to be done if the vertices are used to index different variables in an 
 alternate data structure, such as indices or tensors in a tensor network. To this end, 
 QXGraphDecompositions defines a LabeledGraph struct which pairs a `SimpleGraph` with and 
-array of julia symbols which can be used to identify vertices in a graph after modifications 
+array of julia symbols that can be used to identify vertices in a graph after modifications 
 have been made. 
 
 ```@docs
@@ -31,12 +31,12 @@ using QXGraphDecompositions
 N = 10
 G = LabeledGraph(N)
 
-# Display the label assigned to the first and last vertices in the graph.
+# Display the label assigned to the first and last vertices of the graph.
 @show G.labels[1]
 @show G.labels[end]
 
-# Remove the first vertex in the graph. To remove a vertex, LightGraphs first swaps the 
-# positions of the vertex being removed and the last vertex and then removes the last vertex.
+# Remove the first vertex of the graph. To remove a vertex, LightGraphs first swaps the 
+# positions of the vertex being removed with the last vertex and then removes the last vertex.
 rem_vertex!(G, 1)
 
 # Display the label which is now assigned to the first vertex in the graph.
@@ -78,5 +78,7 @@ chordal_graph
 
 ```@docs
 graph_to_gr
+graph_from_gr
 graph_to_cnf
+graph_from_cnf
 ```

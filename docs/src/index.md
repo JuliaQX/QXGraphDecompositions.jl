@@ -45,13 +45,12 @@ for i = 1:N, j = i+1:N
     add_edge!(G, i, j)
 end
 
-# To get an elimination order for G with minimal treewidth we call quickbb.
-# elimination_order, md = quickbb(G)
+# To get an elimination order for G with minimal treewidth we can use the min fill heuristic.
+# tw, elimination_order = min_fill(G);
 @show elimination_order
 
-# The treewidth of the elimination order is contained in the metadata dictionary returned by 
-# quickbb.
-@show md[:treewidth]
+# The treewidth of the elimination order is:
+@show tw
 ```
 
 For more information about the algorithms made available by QXGraphDecompositions please 
